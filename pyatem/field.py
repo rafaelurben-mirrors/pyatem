@@ -14,7 +14,11 @@ class FieldBase:
         return raw.split(b'\x00')[0].decode()
 
     def make_packet(self):
-        header = struct.pack('!H2x 4s', len(self.raw) + 8, self.__class__.CODE.encode())
+        code = self.__class__.CODE
+        if hasattr(self, 'fieldcode'):
+            code = self.fieldcode
+
+        header = struct.pack('!H2x 4s', len(self.raw) + 8, code.encode())
         return header + self.raw
 
     def serialize(self):
@@ -51,6 +55,11 @@ class FirmwareVersionField(FieldBase):
         self.raw = raw
         self.major, self.minor = struct.unpack('>HH', raw)
         self.version = "{}.{}".format(self.major, self.minor)
+
+    @classmethod
+    def create(cls, major, minor):
+        raw = struct.pack('>HH', major, minor)
+        return cls(raw)
 
     def __repr__(self):
         return '<firmware-version {}>'.format(self.version)
@@ -141,6 +150,13 @@ class ProductNameField(FieldBase):
         name, self.model = struct.unpack('>40s B 3x', raw)
         self.name = self._get_string(name)
 
+    @classmethod
+    def create(cls, name):
+        name = name.encode()
+        name += b'\0' * (44 - len(name))
+        name[40] = 16
+        return cls(name)
+
     def __repr__(self):
         return '<product-name {} (model 0x{:02X})>'.format(self.name, self.model)
 
@@ -171,6 +187,11 @@ class MixerEffectConfigField(FieldBase):
         self.raw = raw
         self.index, self.keyers = struct.unpack('>2B2x', raw)
 
+    @classmethod
+    def create(cls, index, keyers):
+        raw = struct.pack('>2B2x', index, keyers)
+        return cls(raw)
+
     def __repr__(self):
         return '<mixer-effect-config m/e {}: keyers={}>'.format(self.index, self.keyers)
 
@@ -198,6 +219,11 @@ class MediaplayerSlotsField(FieldBase):
     def __init__(self, raw):
         self.raw = raw
         self.stills, self.clips = struct.unpack('>2B2x', raw)
+
+    @classmethod
+    def create(cls, stills, clips):
+        raw = struct.pack('>2B2x', stills, clips)
+        return cls(raw)
 
     def __repr__(self):
         return '<mediaplayer-slots: stills={} clips={}>'.format(self.stills, self.clips)
@@ -337,6 +363,11 @@ class VideoModeField(FieldBase):
             self.widescreen = modes[self.mode][3]
         else:
             raise ValueError(f"Unknown resolution code {self.mode}, cannot continue")
+
+    @classmethod
+    def create(cls, mode):
+        raw = struct.pack('>1B3x', mode)
+        return cls(raw)
 
     def get_label(self):
         if self.resolution is None:
@@ -568,25 +599,65 @@ class InputPropertiesField(FieldBase):
 
     def __init__(self, raw):
         self.raw = raw
-        fields = struct.unpack('>H 20s 4s 10B', raw)
+        fields = struct.unpack('>H 20s 4s ?x HH Bx BB', raw)
         self.index = fields[0]
         self.name = self._get_string(fields[1])
         self.short_name = self._get_string(fields[2])
-        self.source_category = fields[3]
-        self.port_type = fields[9]
-        self.source_ports = fields[6]
+        self.default_name = fields[3]
+        self.source_ports = fields[4]
+        self.external_port_type = fields[5]
+        self.port_type = fields[6]
 
-        self.available_aux = fields[11] & (1 << 0) != 0
-        self.available_multiview = fields[11] & (1 << 1) != 0
-        self.available_supersource_art = fields[11] & (1 << 2) != 0
-        self.available_supersource_box = fields[11] & (1 << 3) != 0
-        self.available_key_source = fields[11] & (1 << 4) != 0
-        self.available_aux1 = fields[11] & (1 << 5) != 0
-        self.available_aux2 = fields[11] & (1 << 6) != 0
-        self.available_usb = fields[11] & (1 << 7) != 0
+        self.available_aux = fields[7] & (1 << 0) != 0
+        self.available_multiview = fields[7] & (1 << 1) != 0
+        self.available_supersource_art = fields[7] & (1 << 2) != 0
+        self.available_supersource_box = fields[7] & (1 << 3) != 0
+        self.available_key_source = fields[7] & (1 << 4) != 0
+        self.available_aux1 = fields[7] & (1 << 5) != 0
+        self.available_aux2 = fields[7] & (1 << 6) != 0
+        self.available_usb = fields[7] & (1 << 7) != 0
 
-        self.available_me1 = fields[12] & (1 << 0) != 0
-        self.available_me2 = fields[12] & (1 << 1) != 0
+        self.available_me1 = fields[8] & (1 << 0) != 0
+        self.available_me2 = fields[8] & (1 << 1) != 0
+
+    @classmethod
+    def create(cls, index, name, short_name, default_name, port_type, source_ports):
+        res = cls(b'\0' * 36)
+        res.index = index
+        res.name = name
+        res.short_name = short_name
+        res.default_name = default_name
+        res.port_type = port_type
+        res.source_ports = source_ports
+        res.update()
+        return res
+
+    def update(self):
+        avail_route = 0
+        if self.available_aux:
+            avail_route |= 1 << 0
+        if self.available_multiview:
+            avail_route |= 1 << 1
+        if self.available_supersource_art:
+            avail_route |= 1 << 2
+        if self.available_supersource_box:
+            avail_route |= 1 << 3
+        if self.available_key_source:
+            avail_route |= 1 << 4
+        if self.available_aux1:
+            avail_route |= 1 << 5
+        if self.available_aux2:
+            avail_route |= 1 << 6
+        if self.available_usb:
+            avail_route |= 1 << 7
+        avail_me = 0
+        if self.available_me1:
+            avail_me |= 1 << 0
+        if self.available_me2:
+            avail_me |= 1 << 1
+        self.raw = struct.pack('>H 20s 4s ?x HH Bx BB', self.index, self.name.encode(), self.short_name.encode(),
+                               self.default_name, self.source_ports, self.external_port_type, self.port_type,
+                               avail_route, avail_me)
 
     def __repr__(self):
         return '<input-properties: index={} name={} button={}>'.format(self.index, self.name, self.short_name)
@@ -3491,6 +3562,10 @@ class InitCompleteField(FieldBase):
     def __init__(self, raw):
         self.raw = raw
 
+    @classmethod
+    def create(cls):
+        return cls(b'\1\0\0\0')
+
     def __repr__(self):
         return '<init-complete>'
 
@@ -3626,3 +3701,15 @@ class SupersourceBoxPropertiesField(FieldBase):
                                                 source=data['source'], x=data['x'], y=data['y'], size=data['size'],
                                                 masked=data['masked'], top=data['top'], bottom=data['bottom'],
                                                 left=data['left'], right=data['right'])]
+
+
+class ManualField(FieldBase):
+    CODE = ''
+
+    def __init__(self, fieldcode, raw):
+        self.CODE = fieldcode
+        self.raw = raw
+        self.fieldcode = fieldcode
+
+    def __repr__(self):
+        return '<manual {}>'.format(self.fieldcode)

@@ -284,9 +284,8 @@ class AtemProtocol:
             classname = key.title().replace('-', '') + "Field"
             if hasattr(fieldmodule, classname):
                 contents = getattr(fieldmodule, classname)(contents)
-
-        if key == 'CapA':
-            return
+            else:
+                key = fieldname.decode()
 
         if key == 'lock-obtained':
             self.log.info('Got lock for {}'.format(contents.store))
@@ -301,7 +300,6 @@ class AtemProtocol:
                 # Remove the lock if we held it
                 del self.locks[contents.store]
             self.log.debug(contents)
-            return
         elif key == 'file-transfer-continue-data':
             self.transfer_budget = contents
             old = self.transfer_budget.size
