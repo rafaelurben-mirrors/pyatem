@@ -692,7 +692,7 @@ class AtemLegacyProtocol(Converter):
     NAME_FIELD = 0x0048
 
     def get_name(self):
-        return self.get_value(Field((self.NAME_FIELD, 32), str, "Device", "Name")).decode()
+        return self.get_value(Field('name', (0x0048, 32), str, "Device", "Name")).decode()
 
     def get_version(self):
         return 'Unsupported'
