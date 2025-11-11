@@ -35,7 +35,7 @@ To have your application respond to changes in the mixer you can subscribe to ev
 
    from pyatem.protocol import AtemProtocol
 
-   def something_happened(field):
+   def something_happened(fieldname, field):
      print(field)
 
    switcher = AtemProtocol("192.168.2.1")
