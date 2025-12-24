@@ -1,0 +1,30 @@
+name: fade-to-black-state
+code: PrgI
+description: Data from the `FtbS`. This contains the information about the fade-to-black transition.
+type: field
+fields:
+  - offset: 0
+    size: 1
+    type: u8
+    name: index
+    description: M/E Index
+    default: 0
+    repr: full
+    unique: true
+  - offset: 1
+    size: 1
+    type: bool
+    name: done
+    description: Fade to black done (blinking in control panel)
+  - offset: 2
+    size: 1
+    type: bool
+    name: transitioning
+    description: Fade to black is doing fade transition (solid red in control panel)
+    repr: full
+  - offset: 3
+    size: 1
+    type: u8
+    name: frames_remaining
+    description: Frames remaining in the fade transition
+    repr: full

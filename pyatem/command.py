@@ -3419,3 +3419,24 @@ class ClearStartupStateCommand(Command):
     def get_command(self):
         data = struct.pack('>xxxx')
         return self._make_command('SRcl', data)
+
+
+class ClearStillCommand(Command):
+    """
+    Implementation of the `CSTL` command.
+
+    ====== ==== ====== ===========
+    Offset Size Type   Description
+    ====== ==== ====== ===========
+    0      1    u8     Media slot index
+    1      3    ?      padding
+    ====== ==== ====== ===========
+
+    """
+
+    def __init__(self, slot):
+        self.slot = slot
+
+    def get_command(self):
+        data = struct.pack('>B3x', self.slot)
+        return self._make_command('CSTL', data)

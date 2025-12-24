@@ -1,0 +1,21 @@
+name: firmware-version
+code: _ver
+type: field
+description: Data from the `_ver` field. This stores the major/minor firmware version numbers
+fields:
+  - offset: 0
+    size: 2
+    type: u16
+    name: major
+    description: Major version
+  - offset: 2
+    size: 2
+    type: u16
+    name: minor
+    description: Minor version
+calculated:
+  version:
+    type: format
+    fstring: "{major}.{minor}"
+    repr: value
+    description: Human readable version string

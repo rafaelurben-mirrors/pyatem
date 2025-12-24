@@ -1,0 +1,105 @@
+name: input-properties
+code: InPr
+description: |
+  Data from the `InPr` field. This stores information about all the internal and external inputs.
+
+  The mixer will send multiple fields, one for each input
+type: field
+fields:
+  - offset: 0
+    size: 2
+    type: u16
+    name: index
+    description: Source index
+    repr: full
+    unique: true
+  - offset: 2
+    size: 20
+    type: string
+    name: name
+    description: Long name
+    repr: full
+  - offset: 22
+    size: 4
+    type: string
+    name: short_name
+    description: Short name for button
+    repr: full
+  - offset: 26
+    size: 1
+    type: bool
+    name: default_name
+    description: Name is unchanged from factory naming
+  - offset: 27
+    size: 1
+    type: "?"
+    description: Unknown
+  - offset: 28
+    size: 2
+    type: u16
+    name: source_ports
+    description: WHEE
+  - offset: 30
+    size: 2
+    type: u16
+    name: external_port_type
+    description: WHEEE
+  - offset: 32
+    size: 2
+    type: u16
+    name: port_type
+    description: WHEOOO
+  - offset: 34
+    size: 1
+    type: u8
+    name: bitfield_availability
+    description: describes routing options for this port
+    bitfield:
+      0:
+        name: available_aux
+        description: Can be routed to an AUX output
+      1:
+        name: available_multiview
+        description: Can be routed to a multiview window
+      2:
+        name: available_supersource_art
+        description: Can be used as art source in a supersource
+      3:
+        name: available_supersource_box
+        description: Can be routed to a box in the supersource
+      4:
+        name: available_key_source
+        description: Can be used as key source for upstream and downstream keyers
+      5:
+        name: available_aux1
+        description: Not sure
+      6:
+        name: available_aux2
+        description: Not sure either
+      7:
+        name: available_usb
+        description: Can be routed to the USB output as virtual webcam
+  - offset: 35
+    size: 1
+    type: u8
+    name: bitfield_availability2
+    description: describes routing options for this port
+    bitfield:
+      0:
+        name: available_me1
+        description: This source is available on the first M/E
+      1:
+        name: available_m2
+        description: This source is available on the second M/E
+
+tests:
+  - name: me_black
+    label: mini extreme black source
+    raw: 0000426c61636b000000000000000000000000000000424c4b000100010001000100ff01
+    check:
+      index: 0
+      name: Black
+      short_name: BLK
+      port_type: 256
+      external_port_type: 256
+      source_ports: 256

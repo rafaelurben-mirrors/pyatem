@@ -1,0 +1,74 @@
+name: video-mode-capability
+code: _VMC
+description: |
+  Data from the `_VMC` field. This describes all the video modes supported by the hardware and
+  the associated multiview and downconvert modes.
+
+  The first 2 bytes is the number of modes supported, then there's a 13 byte block that's repeated for every
+  mode that has the mode number, the possible multiview modes in this mode and the possible downconvert modes.
+type: field
+fields:
+  - offset: 0
+    size: 2
+    type: u16
+    name: count
+    description: Number of video modes
+    repr: full
+    repeat:
+      name: modes
+
+repeated:
+  - offset: 0
+    size: 1
+    type: u8
+    name: modenum
+    description: Video mode number referring to a VideoMode
+  - offset: 1
+    size: 3
+    type: "?"
+    description: "padding"
+  - offset: 4
+    size: 4
+    type: u32
+    name: multiview
+    description: Multiview modes bitfield
+    process: _bitfield_to_modes
+  - offset: 8
+    size: 4
+    type: u32
+    name: downscale
+    description: Downscale modes bitfield
+    process: _bitfield_to_modes
+  - offset: 12
+    size: 1
+    type: bool
+    name: reconfig
+    description: Requires reconfiguration
+
+calculated:
+  mode:
+    access: repeated
+    description: The VideoMode corresponding with this mode
+    source: modenum
+    type: code
+    function: _int_to_mode
+    args:
+      - name: mode
+        type: int
+    code:
+      python: |
+        return VideoModeField(VideoModeField.STRUCT.pack(mode))
+  _bitfield_to_modes:
+    type: code
+    access: method
+    description: Convert a mode bitfield to a list of VideoModeField instances
+    args:
+      - name: bitfield
+        type: int
+    code:
+      python: |
+        result = []
+        for i in range(0, 32):
+            if bitfield & (2 ** i):
+                result.append(self._int_to_mode(i))
+        return result

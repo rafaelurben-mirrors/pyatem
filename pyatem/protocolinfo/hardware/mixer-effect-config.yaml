@@ -1,0 +1,25 @@
+name: mixer-effect-config
+code: _MeC
+description: |
+  Data from the `_MeC` field. This stores basic info about the M/E units.
+
+  The mixer will send multiple fields, one for each M/E unit.
+type: field
+fields:
+  - offset: 0
+    size: 1
+    type: u8
+    name: index
+    description: M/E index
+    repr: full
+    unique: true
+  - offset: 1
+    size: 1
+    type: u8
+    name: keyers
+    description: Number of keyers on this M/E
+    repr: full
+  - offset: 2
+    size: 2
+    type: "?"
+    description: "padding"

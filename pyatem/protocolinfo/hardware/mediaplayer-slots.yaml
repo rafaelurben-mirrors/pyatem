@@ -1,0 +1,21 @@
+name: mediaplayer-slots
+code: _mpl
+description: Data from the `_mpl` field. This stores basic info about the mediaplayer slots.
+type: field
+fields:
+  - offset: 0
+    size: 1
+    type: u8
+    name: stills
+    description: Number of still slots
+    repr: full
+  - offset: 1
+    size: 1
+    type: u8
+    name: clips
+    description: Number of clip slots
+    repr: full
+  - offset: 2
+    size: 2
+    type: "?"
+    description: "padding"

@@ -1,0 +1,30 @@
+name: mediaplayer-selected
+code: MPCE
+description: |
+  Data from the `MPCE` field. This defines what media from the media pool is loaded in a specific media player.
+  There is one MPCE field per mediaplayer in the hardware.
+type: field
+fields:
+  - offset: 0
+    size: 1
+    type: u8
+    name: index
+    description: Mediaplayer index
+    repr: full
+    unique: true
+  - offset: 1
+    size: 1
+    type: u8
+    name: source_type
+    description: Source type
+    repr: full
+  - offset: 2
+    size: 1
+    type: u8
+    name: slot
+    description: Source index loaded in the mediaplayer
+    repr: full
+  - offset: 3
+    size: 1
+    type: "?"
+    description: "padding"

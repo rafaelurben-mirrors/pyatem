@@ -1,0 +1,18 @@
+name: product-name
+code: _pin
+description: Data from the `_pin` field. This stores the product name and model for this switcher
+type: field
+fields:
+  - offset: 0
+    size: 40
+    type: string
+    name: name
+    description: Product name
+    repr: value
+  - offset: 40
+    size: 4
+    type: u32
+    name: model
+    description: Model code
+    default: 0
+    repr: full

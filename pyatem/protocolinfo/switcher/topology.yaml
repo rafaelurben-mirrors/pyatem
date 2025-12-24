@@ -1,0 +1,212 @@
+name: topology
+code: _top
+description: |
+  Data from the `_top` field. This describes the internal video routing topology.
+
+  =================== ========= ======= ======
+  spec                Atem Mini 1M/E 4k TVS HD
+  =================== ========= ======= ======
+  M/E units           1         1       1
+  upstream keyers     1         1       1
+  downstream keyers   1         2       2
+  dve                 1         1       1
+  stinger             0         1       0
+  supersources        0         0       0
+  multiview           0         1       1
+  rs485               0         1       1
+  =================== ========= ======= ======
+type: field
+fields:
+  - offset: 0
+    size: 1
+    type: u8
+    name: me_units
+    description: Number of Mix/Effect units
+    repr: full
+  - offset: 1
+    size: 1
+    type: u8
+    name: sources
+    description: Total number of sources
+    repr: full
+  - offset: 2
+    size: 1
+    type: u8
+    name: downstream_keyers
+    description: Number of downstream keyers
+  - offset: 3
+    size: 1
+    type: u8
+    name: aux_busses
+    description: Number of AUX outputs
+  - offset: 4
+    size: 1
+    type: u8
+    name: mixminus_outputs
+    description: Number of Mix Minus outputs (SDI outputs with seperate audio mix)
+  - offset: 5
+    size: 1
+    type: u8
+    name: mediaplayers
+    description: Number of media players
+  - offset: 6
+    size: 1
+    type: u8
+    name: multiviewers
+    description: Number of multiview generators
+  - offset: 7
+    size: 1
+    type: u8
+    name: rs485
+    description: Number of RS485 connectors
+  - offset: 8
+    size: 1
+    type: u8
+    name: hyperdecks
+    description: Number of possible hyperdeck connections
+  - offset: 9
+    size: 1
+    type: u8
+    name: dve
+    description: Number of DVE units that are assignable
+  - offset: 10
+    size: 1
+    type: u8
+    name: stingers
+    description: Number of stinger generators
+  - offset: 11
+    size: 1
+    type: u8
+    name: supersources
+    description: Number of supersource generators
+  - offset: 12
+    size: 1
+    type: bool
+    name: multiviewer_routable
+    description: The multiviewer is routable
+  - offset: 13
+    size: 1
+    type: u8
+    name: talkback_channels
+    description: Number of talkback channels
+  - offset: 14
+    size: 1
+    type: "?"
+    description: unknown
+  - offset: 15
+    size: 1
+    type: "?"
+    description: unknown
+  - offset: 16
+    size: 1
+    type: "?"
+    description: unknown
+  - offset: 17
+    size: 1
+    type: "?"
+    description: unknown
+  - offset: 18
+    size: 1
+    type: bool
+    name: camera_control
+    description: Supports camera control
+  - offset: 19
+    size: 1
+    type: "?"
+    description: unknown
+  - offset: 20
+    size: 1
+    type: "?"
+    description: unknown
+  - offset: 21
+    size: 1
+    type: "?"
+    description: unknown
+  - offset: 22
+    size: 1
+    type: bool
+    name: advanced_chroma_keyers
+    description: Use the new advanced chroma keyers
+  - offset: 23
+    size: 1
+    type: bool
+    name: only_configurable_outputs
+    description: The hardware has no fixed function outputs, only AUX busses
+  - offset: 24
+    size: 1
+    type: "?"
+    description: unknown
+  - offset: 25
+    size: 1
+    type: "?"
+    description: unknown
+  - offset: 26
+    size: 1
+    type: "?"
+    description: unknown
+  - offset: 27
+    size: 1
+    type: "?"
+    description: unknown
+
+tests:
+  - name: mini_extreme
+    label: Atem Mini Extreme
+    raw: "011d0203000201000a01000100000001000001000000010101000000"
+    check:
+      me_units: 1
+      sources: 29
+      mediaplayers: 2
+      hyperdecks: 10
+      downstream_keyers: 2
+      aux_busses: 3 # 2 HDMI outputs and USB
+      dve: 1
+      mixminus_outputs: 0
+      multiviewers: 1
+      multiviewer_routable: false
+      camera_control: true
+      advanced_chroma_keyers: true
+      stingers: 0 # :(
+      supersources: 1
+      rs485: 0
+      only_configurable_outputs: true
+  - name: production_studio_4k
+    label: Atem Production Studio 4k
+    raw: "01180201000201000400000001000000000101000001000000000000"
+    check:
+      me_units: 1
+      sources: 24
+      mediaplayers: 2
+      hyperdecks: 4
+      downstream_keyers: 2
+      aux_busses: 1
+      dve: 0
+      mixminus_outputs: 0
+      multiviewers: 1
+      multiviewer_routable: true
+      camera_control: true
+      advanced_chroma_keyers: false
+      stingers: 0
+      supersources: 0
+      rs485: 0
+      only_configurable_outputs: false
+  - name: television_studio_hd
+    label: Atem Television Studio HD
+    raw: "01180201040201010401000001010400000001010101000000100006"
+    check:
+      me_units: 1
+      sources: 24
+      mediaplayers: 2
+      hyperdecks: 4
+      downstream_keyers: 2
+      aux_busses: 1
+      dve: 1
+      mixminus_outputs: 4
+      multiviewers: 1
+      multiviewer_routable: true
+      camera_control: true
+      advanced_chroma_keyers: false
+      stingers: 0
+      supersources: 0
+      rs485: 1
+      only_configurable_outputs: false

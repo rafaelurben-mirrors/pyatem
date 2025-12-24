@@ -1,0 +1,26 @@
+name: transition-preview
+code: TsPr
+description: |
+  Data from the `TsPr` field. This represents the state of the "PREV TRANS" button on the mixer.
+
+  The mixer will send a field for every M/E unit in the mixer.
+type: field
+fields:
+  - offset: 0
+    size: 1
+    type: u8
+    name: index
+    description: M/E Index
+    default: 0
+    repr: full
+    unique: true
+  - offset: 1
+    size: 1
+    type: bool
+    name: enabled
+    description: Transition preview is enabled
+    repr: full
+  - offset: 2
+    size: 2
+    type: "?"
+    description: padding

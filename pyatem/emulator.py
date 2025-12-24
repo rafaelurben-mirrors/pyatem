@@ -2,9 +2,11 @@ import argparse
 import socket
 import struct
 
-from pyatem.field import ManualField
+from pyatem.field import ManualField, InitCompleteField
 from pyatem.protocol import AtemProtocol
+from pyatem.simulations.extreme import ATEMMiniExtreme
 from pyatem.transport import Packet, UdpProtocol
+from pyatem.state_order import initial_state_order
 
 
 class AtemClient:
@@ -91,9 +93,20 @@ class AtemClient:
                 result.append(idict[key])
         return result
 
+    def _filter_state(self, fields, code):
+        for item in fields:
+            if item.CODE == code:
+                yield item
+
     def send_initial_state(self):
+        has_incm = False
         fields = self.emulator.mixerstate
         fields = self._flatten(fields)
+
+        ordered = []
+        for code in initial_state_order:
+            items = list(self._filter_state(fields, code))
+            ordered.extend(items)
 
         # for i in range(0, len(fields)):
         #     f = fields[i]
@@ -105,7 +118,13 @@ class AtemClient:
         buffer = []
         size = 0
 
-        for field in fields:
+        for field in ordered:
+            if field.CODE == 'InCm':
+                has_incm = True
+        if not has_incm:
+            ordered.append(InitCompleteField.create())
+
+        for field in ordered:
             if isinstance(field, bytes):
                 continue
             fsize = len(field.raw) + 8
@@ -204,6 +223,10 @@ if __name__ == '__main__':
 
     proxy_state = []
     emulator = AtemEmulator()
+    v = ATEMMiniExtreme()
+    v.initialize()
+    emulator.mixerstate = v.state
+    emulator.listen()
 
     pt = AtemProtocol(ip=args.ip)
     pt.on('change', proxy_state_change)

@@ -1,0 +1,55 @@
+name: color-generator
+code: ColV
+description: Data from the `ColV`. This is color set in the color generators of the mixer
+type: field
+serialize: true
+fields:
+  - offset: 0
+    size: 1
+    type: u8
+    name: index
+    description: Color generator index
+    default: 0
+    repr: full
+    unique: true
+    restore: ColorGeneratorCommand
+  - offset: 1
+    size: 1
+    type: "?"
+    description: padding
+  - offset: 2
+    size: 2
+    type: u16
+    name: hue
+    max: 3599
+    out_max: 359.9
+    out_min: 0.0
+    description: Hue
+    repr: full
+    restore: ColorGeneratorCommand
+  - offset: 4
+    size: 2
+    type: u16
+    name: saturation
+    max: 1000
+    out_max: 1.0
+    description: Saturation
+    repr: full
+    restore: ColorGeneratorCommand
+  - offset: 6
+    size: 2
+    type: u16
+    name: luma
+    max: 1000
+    out_max: 1.0
+    description: Luma
+    repr: full
+    restore: ColorGeneratorCommand
+
+calculated:
+  get_rgb:
+    type: code
+    access: method
+    description: Get the color as RGB tuple (0.0-1.0)
+    code:
+      python: return colorsys.hls_to_rgb(self.hue / 360.0, self.luma, self.saturation)

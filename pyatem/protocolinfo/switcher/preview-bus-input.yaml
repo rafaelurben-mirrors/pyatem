@@ -1,0 +1,36 @@
+name: preview-bus-input
+code: PrvI
+description: |
+  Data from the `PrvI` field. This represents the active channel on the preview bus of the specific M/E unit.
+
+  The mixer will send a field for every M/E unit in the mixer.
+type: field
+fields:
+  - offset: 0
+    size: 1
+    type: u8
+    name: index
+    description: M/E Index
+    default: 0
+    repr: full
+    unique: true
+  - offset: 1
+    size: 1
+    type: "?"
+    description: padding
+  - offset: 2
+    size: 2
+    type: u16
+    name: source
+    description: Source index
+    repr: full
+  - offset: 4
+    size: 1
+    type: bool
+    name: in_program
+    description:  Preview is mixed in program during a transition
+    default: false
+  - offset: 5
+    size: 3
+    type: "?"
+    description: padding

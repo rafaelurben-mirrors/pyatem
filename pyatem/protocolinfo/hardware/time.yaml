@@ -1,0 +1,52 @@
+name: time
+code: Time
+description: Data from the `Time` field. This contains the value of the internal clock of the hardware.
+type: field
+fields:
+  - offset: 0
+    size: 1
+    type: u8
+    name: hours
+    description: Hours
+    default: 0
+    repr: value
+  - offset: 1
+    size: 1
+    type: u8
+    name: minutes
+    description: Minutes
+    default: 0
+    repr: value
+  - offset: 2
+    size: 1
+    type: u8
+    name: seconds
+    description: Seconds
+    default: 0
+    repr: value
+  - offset: 3
+    size: 1
+    type: u8
+    name: frames
+    description: Frames
+    default: 0
+    repr: value
+  - offset: 4
+    size: 1
+    type: bool
+    name: is_dropframe
+    description: Current mode uses dropframes
+    default: False
+  - offset: 5
+    size: 3
+    type: "?"
+    description: "padding"
+
+calculated:
+  total_seconds:
+    type: code
+    access: method
+    description: get the time as amount of seconds (excluding the frames)
+    code:
+      python: |
+        return self.seconds + (60 * self.minutes) + (60 * 60 * self.hours)

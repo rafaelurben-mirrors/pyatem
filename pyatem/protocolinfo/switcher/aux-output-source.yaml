@@ -1,0 +1,22 @@
+name: aux-output-source
+code: AuxS
+description: Data from the `AuxS`. The routing for the AUX outputs of the hardware.
+type: field
+fields:
+  - offset: 0
+    size: 1
+    type: u8
+    name: index
+    description: Aux output index
+    repr: full
+    unique: true
+  - offset: 1
+    size: 1
+    type: "?"
+    description: padding
+  - offset: 2
+    size: 2
+    type: u16
+    name: source
+    description: Source index
+    repr: full

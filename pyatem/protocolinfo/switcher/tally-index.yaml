@@ -1,0 +1,27 @@
+name: tally-index
+code: TlIn
+description: Data from the `TlIn`. This is the status of the tally light for every input in order of index number.
+type: field
+fields:
+  - offset: 0
+    size: 2
+    type: u16
+    name: num
+    description: Total number of tally lights
+    repr: full
+    repeat:
+      name: tally
+      format: tuple
+repeated:
+  - offset: 0
+    size: 1
+    type: u8
+    name: tally
+    description: Tally bitfield
+    bitfield:
+      0:
+        description: Program
+        name: program
+      1:
+        description: Preview
+        name: preview

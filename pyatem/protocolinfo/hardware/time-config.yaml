@@ -1,0 +1,21 @@
+name: time-config
+code: TCCc
+description: Data from the `TCCc` field. This contains the freerun/time of day setting for the timecode mode.
+type: field
+fields:
+  - offset: 0
+    size: 1
+    type: u8
+    name: mode
+    description: Timecode mode
+    default: 0
+    repr: full
+    enum:
+      0:
+        description: Free-running timecode
+      1:
+        description: Time of day
+  - offset: 1
+    size: 3
+    type: "?"
+    description: "padding"

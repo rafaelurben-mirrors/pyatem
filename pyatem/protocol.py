@@ -67,6 +67,7 @@ class AtemProtocol:
         'AMMO': 'audio-mixer-master-properties',
         'AMmO': 'audio-mixer-monitor-properties',
         'AMTl': 'audio-mixer-tally',
+        '_FAC': 'fairlight-audio-config',
         'FASP': 'fairlight-strip-properties',
         'FAMP': 'fairlight-master-properties',
         'FMPP': 'fairlight-properties',
@@ -106,6 +107,9 @@ class AtemProtocol:
         'AMBP': 'atem-master-eq-band-properties',
         'MvPr': 'multiviewer-properties',
         'MvIn': 'multiviewer-input',
+        'MvOv': 'multiviewer-overlay',
+        'MvOc': 'multiviewer-oc',
+        'MvVM': 'multiviewer-video-mode',
         'VuMC': 'multiviewer-vu',
         'VuMo': 'multiviewer-vu-opacity',
         'SaMw': 'multiviewer-safe-area',
@@ -170,6 +174,9 @@ class AtemProtocol:
         'multiviewer-properties': struct.Struct('>B'),
         'multiviewer-input': struct.Struct('>BB'),
         'multiviewer-vu': struct.Struct('>BB'),
+        'multiviewer-overlay': struct.Struct('>BB'),
+        'multiviewer-oc': struct.Struct('>BB'),
+        'multiviewer-video-mode': struct.Struct('>B'),
         'multiviewer-safe-area': struct.Struct('>BB'),
         'camera-control-data-packet': struct.Struct('>BBB'),
         'supersource-box-properties': struct.Struct('>BB'),
@@ -279,13 +286,13 @@ class AtemProtocol:
     def save_field_data(self, fieldname, contents):
         raw = contents
         key = fieldname.decode()
+        fieldname = key
         if key in self.FIELDNAME_PRETTY:
-            key = self.FIELDNAME_PRETTY[key]
-            classname = key.title().replace('-', '') + "Field"
+            fieldname = self.FIELDNAME_PRETTY[key]
+            classname = fieldname.title().replace('-', '') + "Field"
             if hasattr(fieldmodule, classname):
+                key = fieldname
                 contents = getattr(fieldmodule, classname)(contents)
-            else:
-                key = fieldname.decode()
 
         if key == 'lock-obtained':
             self.log.info('Got lock for {}'.format(contents.store))
@@ -381,8 +388,8 @@ class AtemProtocol:
             if preset is not None:
                 self._raise('pip-preset', preset)
 
-        if key in self.FIELDNAME_UNIQUE:
-            idxes = self.FIELDNAME_UNIQUE[key].unpack_from(raw, 0)
+        if fieldname in self.FIELDNAME_UNIQUE:
+            idxes = self.FIELDNAME_UNIQUE[fieldname].unpack_from(raw, 0)
             if key not in self.mixerstate:
                 self.mixerstate[key] = {}
 

@@ -1,0 +1,48 @@
+name: mediaplayer-file-info
+code: MPfe
+description: Data from the `MPfe`. This is the metadata about a single frame slot in the mediaplayer
+type: field
+fields:
+  - offset: 0
+    size: 1
+    type: u8
+    name: type
+    description: Type
+    repr: full
+    enum:
+      0:
+        name: still
+        description: Still
+  - offset: 1
+    size: 1
+    type: "?"
+    description: padding
+  - offset: 2
+    size: 2
+    type: u16
+    name: index
+    description: Slot index
+    repr: full
+    unique: true
+  - offset: 4
+    size: 1
+    type: bool
+    name: is_used
+    description: Slot is used
+  - offset: 5
+    size: 16
+    type: bytes
+    name: hash
+    description: The MD5 hash of the file in the slot
+  - offset: 21
+    size: 2
+    type: "?"
+    description: padding
+  - offset: 23
+    size: 1
+    type: u8
+    name: name_len
+    description: Name of the slot, first byte is the number of characters
+    repeat:
+      name: name
+      store: string

@@ -3,6 +3,7 @@
 import colorsys
 import struct
 import math
+from typing import Self
 
 from pyatem.command import ColorGeneratorCommand, DkeyTieCommand, DkeyRateCommand, DkeySetFillCommand, \
     DkeySetKeyCommand, DkeyGainCommand, DkeyMaskCommand, SupersourceBoxPropertiesCommand, SupersourcePropertiesCommand
@@ -42,27 +43,41 @@ class FirmwareVersionField(FieldBase):
 
     After parsing:
 
-    :ivar major: Major firmware version
-    :ivar minor: Minor firmware version
+    :ivar major: Major Version
+    :ivar minor: Minor version
+    :ivar version: Human readable version string
     """
 
     CODE = "_ver"
+    STRUCT = struct.Struct('>HH')
 
-    def __init__(self, raw):
+    def __init__(self, raw: bytes):
         """
-        :param raw:
+        :param raw: Bytes containing the field contents
         """
         self.raw = raw
-        self.major, self.minor = struct.unpack('>HH', raw)
-        self.version = "{}.{}".format(self.major, self.minor)
+        field = self.STRUCT.unpack(raw)
+        self.major = field[0]
+        self.minor = field[1]
+
+        self.version = f"{self.major}.{self.minor}"
 
     @classmethod
-    def create(cls, major, minor):
-        raw = struct.pack('>HH', major, minor)
+    def create(cls, major: int, minor: int) -> Self:
+        """
+        :param major: Major Version
+        :param minor: Minor version
+        :return: Instance of FirmwareVersionField with the data applied
+        """
+        raw = cls.STRUCT.pack(major, minor)
         return cls(raw)
 
+    def uncreate(self) -> tuple:
+        """Create arguments to feed into FirmwareVersionField.create()"""
+        return self.major, self.minor
+
     def __repr__(self):
-        return '<firmware-version {}>'.format(self.version)
+        return f"<firmware-version {self.version}>"
 
 
 class TimeField(FieldBase):
@@ -151,11 +166,14 @@ class ProductNameField(FieldBase):
         self.name = self._get_string(name)
 
     @classmethod
-    def create(cls, name):
+    def create(cls, name, model):
         name = name.encode()
-        name += b'\0' * (44 - len(name))
-        name[40] = 16
+        name += b'\0' * (40 - len(name))
+        name += struct.pack('>B 3x', model)
         return cls(name)
+
+    def uncreate(self):
+        return self.name, self.model
 
     def __repr__(self):
         return '<product-name {} (model 0x{:02X})>'.format(self.name, self.model)
@@ -2129,6 +2147,53 @@ class AtemEqBandPropertiesField(FieldBase):
         return '<atem-eq-band-properties {} band {} {}>'.format(self.strip_id, self.band_index, desc)
 
 
+class FairlightLimiterPropertiesField(FieldBase):
+    """
+    Data from the `AILP` field. This encodes the limiter settings in the fairlight mixer.
+
+    ====== ==== ====== ===========
+    Offset Size Type   Descriptions
+    ====== ==== ====== ===========
+    0      2    u16    Audio source index
+    2      2    ?      unknown
+    4      4    ?      unknown
+    14     1    u8     Split indicator? [01 for normal, FF for split]
+    15     1    u8     subchannel index
+    16     1    bool   limiter enabled
+    17     3    ?      padding?
+    20     4    float  threshold
+    24     4    float  attack
+    28     4    i32    hold
+    32     4    i32    release
+    ====== ==== ====== ===========
+
+    """
+
+    CODE = "AILP"
+
+    def __init__(self, raw):
+        self.raw = raw
+        values = struct.unpack('>H 2x 4x 6x BB ?3x ffii', raw)
+        self.index = values[0]
+        self.is_split = values[1]
+        self.subchannel = values[2]
+
+        self.enabled = values[3]
+        self.threshold = values[4]
+        self.attack = values[5]
+        self.hold = values[6]
+        self.release = values[7]
+
+        self.strip_id = str(self.index)
+        if self.is_split == 0xff:
+            self.strip_id += '.' + str(self.subchannel)
+        else:
+            self.strip_id += '.0'
+
+    def __repr__(self):
+        return '<fairlight-limiter-properties {}>'.format(self.strip_id)
+
+
 class AudioInputField(FieldBase):
     """
     Data from the `AMIP`. Describes the inputs to the atem audio mixer
@@ -3701,6 +3766,86 @@ class SupersourceBoxPropertiesField(FieldBase):
                                                 source=data['source'], x=data['x'], y=data['y'], size=data['size'],
                                                 masked=data['masked'], top=data['top'], bottom=data['bottom'],
                                                 left=data['left'], right=data['right'])]
+
+
+class FairlightAudioConfigField(FieldBase):
+    """
+    Data from the `_FAC` field. This stores the topology of the Fairlight mixer.
+
+    ====== ==== ====== ===========
+    Offset Size Type   Description
+    ====== ==== ====== ===========
+    0      1    u8     Number of channels
+    1      1    u8     Number of monitors
+    2      2    ?      unknown
+    ====== ==== ====== ===========
+
+    After parsing:
+
+    :ivar channels: Number of channels
+    :ivar monitors: Number of monitors
+    """
+
+    CODE = "_FAC"
+
+    def __init__(self, raw):
+        self.raw = raw
+        self.channels, self.monitors = struct.unpack('>2B2x', raw)
+
+    @classmethod
+    def create(cls, channels, monitors):
+        raw = struct.pack('>2B2x', channels, monitors)
+        return cls(raw)
+
+    def __repr__(self):
+        return '<fairlight-audio-config: channels={} monitors={}>'.format(self.channels, self.monitors)
+
+
+class MultiviewerConfigField(FieldBase):
+    """
+    Data from the `_MvC` field. This defines the general topology of the multiviewers.
+
+    ====== ==== ====== ===========
+    Offset Size Type   Description
+    ====== ==== ====== ===========
+    0      1    u8     Number of windows
+    1      1    bool   Layout is configurable
+    2      1    bool   Windows are routable
+    3      1    bool   Can change VU opacity?
+    4      1    ?      unknown
+    5      1    bool   Windows can have a VU meter overlay
+    6      1    bool   Windows can have a safe-area overlay
+    7      1    bool   Program and preview can be swapped
+    8      1    bool   Support splitting quadrants
+    ====== ==== ====== ===========
+
+    After parsing:
+
+    :ivar channels: Number of channels
+    :ivar monitors: Number of monitors
+    """
+
+    CODE = "_MvC"
+
+    def __init__(self, raw):
+        self.raw = raw
+        field = struct.unpack('>B 3? x 4? 3x', raw)
+        self.windows = field[0]
+        self.layout_configurable = field[1]
+        self.routable = field[2]
+        self.vu_opacity = field[3]
+        self.vu_overlay = field[4]
+        self.safe_area = field[5]
+        self.swap_program_preview = field[6]
+        self.split_quadrants = field[7]
+
+    @classmethod
+    def create(cls, windows):
+        raw = struct.pack('>B 3? x 4? 3x', windows, True, True, False, True, True, False, True)
+        return cls(raw)
+
+    def __repr__(self):
+        return '<fairlight-audio-config: channels={} monitors={}>'.format(self.channels, self.monitors)
 
 
 class ManualField(FieldBase):

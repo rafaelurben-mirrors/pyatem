@@ -1,0 +1,92 @@
+name: transition-settings
+code: TrSS
+description: |
+  Data from the `TrSS` field. This stores the config of the "Next transition" and "Transition style" blocks on the
+  control panels.
+
+  The mixer will send a field for every M/E unit in the mixer.
+  
+  There are two sets of style/layer settings. The first set is the active transition settings. The second one
+  will store the transitions settings if you change any of them while a transition is active. These settings will be
+  applied as soon as the transition ends. This is signified by blinking transition settings buttons in the official
+  control panels.
+type: field
+fields:
+  - offset: 0
+    size: 1
+    type: u8
+    name: index
+    description: M/E Index
+    default: 0
+    repr: full
+    unique: true
+  - offset: 1
+    size: 1
+    type: u8
+    name: style
+    description: Transition style
+    repr: full
+    enum_const: name
+    enum:
+      0:
+        description: Mix
+        name: mix
+      1:
+        description: Dip
+        name: dip
+      2:
+        description: Wipe
+        name: wipe
+      3:
+        description: DVE
+        name: dve
+      4:
+        description: Sting
+        name: sting
+  - offset: 2
+    size: 1
+    type: u8
+    name: nt
+    description: Next transition layers
+    bitfield:
+      0:
+        name: next_transition_bkgd
+        description: Next transition will affect the background layer
+      1:
+        name: next_transition_key1
+        description: Next transition will affect the upstream key 1 layer
+      2:
+        name: next_transition_key2
+        description: Next transition will affect the upstream key 2 layer
+      3:
+        name: next_transition_key3
+        description: Next transition will affect the upstream key 3 layer
+      4:
+        name: next_transition_key4
+        description: Next transition will affect the upstream key 4 layer
+  - offset: 3
+    size: 1
+    type: u8
+    name: style_next
+    description: Next transition style
+  - offset: 4
+    size: 1
+    type: u8
+    name: ntn
+    description: Next transition next transition layers
+    bitfield:
+      0:
+        name: next_transition_bkgd_next
+        description: Next transition (after current) will affect the background layer
+      1:
+        name: next_transition_key1_next
+        description: Next transition (after current) will affect the upstream key 1 layer
+      2:
+        name: next_transition_key2_next
+        description: Next transition (after current) will affect the upstream key 2 layer
+      3:
+        name: next_transition_key3_next
+        description: Next transition (after current) will affect the upstream key 3 layer
+      4:
+        name: next_transition_key4_next
+        description: Next transition (after current) will affect the upstream key 4 layer
