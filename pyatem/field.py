@@ -3234,10 +3234,8 @@ class FairlightMasterLevelsField(FieldBase):
         return '<fairlight-master-levels>'
 
 
-class CameraControlDataPacketFieldDisabled(FieldBase):
+class CameraControlDataPacketField(FieldBase):
     """
-
-    !! This parser is not production ready !!
     The packet length is somewhat inconsistent which can cause the TCP protocol to fail due to the alignment in the
     protocol breaking
 
