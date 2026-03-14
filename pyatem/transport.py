@@ -164,13 +164,14 @@ class UdpProtocol(BaseProtocol):
     FLAG_REQUEST_RETRANSMISSION = 8
     FLAG_ACK = 16
 
-    def __init__(self, ip, port=9910):
+    def __init__(self, ip, port=9910, timeout=5):
         super().__init__()
         self.ip = ip
         self.port = port
+        self.timeout = timeout
 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.sock.settimeout(5)
+        self.sock.settimeout(self.timeout)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 1024 * 1024 * 16)
 
         self.thread = threading.Thread(None, self._udp_thread, "atem-udp", daemon=True)
@@ -201,7 +202,13 @@ class UdpProtocol(BaseProtocol):
 
     def _udp_thread(self):
         while True:
-            readable, _, _ = select.select([self.sock, self.thread_queue], [], [])
+            readable, _, _ = select.select([self.sock, self.thread_queue], [], [], self.timeout)
+            if not readable:
+                # Timeout
+                self.log.error("Timeout reading from ATEM")
+                self.state = UdpProtocol.STATE_CLOSED
+                self.connect()
+                self.thread_recv_queue.put(None)
             for queue in readable:
                 if queue is self.sock:
                     packet = self._receive_packet_low()
@@ -254,6 +261,7 @@ class UdpProtocol(BaseProtocol):
             data, address = self.sock.recvfrom(2048)
         except socket.timeout:
             # No longer receiving data from the hardware, reset the state of the connection and re-init
+            self.log.error("Socket timeout")
             self.state = UdpProtocol.STATE_CLOSED
             self.connect()
             return
