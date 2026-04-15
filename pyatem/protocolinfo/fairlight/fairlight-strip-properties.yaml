@@ -1,0 +1,112 @@
+name: fairlight-strip-properties
+code: FASP
+description: |
+  Data from the `FASP`. Settings for a channel strip on fairlight audio units.
+type: field
+fields:
+  - offset: 0
+    size: 2
+    type: u16
+    name: index
+    description: Audio source index
+    repr: full
+  - offset: 2
+    size: 12
+    type: "?"
+    description: unknown
+  - offset: 14
+    size: 1
+    type: u8
+    name: is_split
+    description: Split indicator? [01 for normal, FF for split]
+  - offset: 15
+    size: 1
+    type: u8
+    name: subchannel
+    description: Subchannel index
+  - offset: 16
+    size: 2
+    type: "?"
+    description: padding
+  - offset: 18
+    size: 1
+    type: u8
+    name: delay
+    description: Delay in frames
+  - offset: 19
+    size: 3
+    type: "?"
+    description: padding
+  - offset: 22
+    size: 2
+    type: i16
+    name: gain
+    description: Gain
+    min: -10000
+    max: 600
+  - offset: 24
+    size: 5
+    type: "?"
+    description: unknown
+  - offset: 29
+    size: 1
+    type: bool
+    name: eq_enable
+    description: Enable EQ
+  - offset: 30
+    size: 4
+    type: "?"
+    description: unknown
+  - offset: 34
+    size: 2
+    type: i16
+    name: eq_gain
+    description: EQ Gain
+  - offset: 36
+    size: 2
+    type: "?"
+    description: padding
+  - offset: 38
+    size: 2
+    type: u16
+    name: dynamics_gain
+    description: Dynamics gain
+  - offset: 40
+    size: 2
+    type: i16
+    name: pan
+    description: Pan
+    min: -10000
+    max: 10000
+  - offset: 42
+    size: 4
+    type: "?"
+    description: padding
+  - offset: 46
+    size: 2
+    type: i16
+    name: volume
+    description: Volume fader
+    min: -10000
+    max: 1000
+  - offset: 48
+    size: 1
+    type: "?"
+    description: padding
+  - offset: 49
+    size: 1
+    type: u8
+    name: state
+    description: AFV bitfield
+  - offset: 50
+    size: 2
+    type: "?"
+    description: padding
+
+calculated:
+  strip_id:
+    type: code
+    description: Channel strip id
+    access: property
+    code:
+      python: return f"{self.index}.{self.subchannel if self.is_split == 0xFF else 0}"

@@ -1,0 +1,62 @@
+name: fairlight-limiter-properties
+code: AILP
+description: Data from the `AILP` field. This encodes the limiter settings in the fairlight mixer.
+type: field
+fields:
+  - offset: 0
+    size: 2
+    type: u16
+    name: index
+    description: Audio source index
+    repr: full
+  - offset: 2
+    size: 12
+    type: "?"
+    description: unknown
+  - offset: 14
+    size: 1
+    type: u8
+    name: is_split
+    description: Split indicator
+  - offset: 15
+    size: 1
+    type: u8
+    name: subchannel
+    description: Subchannel index
+  - offset: 16
+    size: 1
+    type: bool
+    name: enabled
+    description: Limiter enabled
+  - offset: 17
+    size: 3
+    type: "?"
+    description: padding
+  - offset: 20
+    size: 4
+    type: float
+    name: threshold
+    description: Limiter threshold
+  - offset: 24
+    size: 4
+    type: float
+    name: attack
+    description: Limiter attack time
+  - offset: 28
+    size: 4
+    type: i32
+    name: hold
+    description: Limiter hold time
+  - offset: 32
+    size: 4
+    type: i32
+    name: release
+    description: Limiter release time
+
+calculated:
+  strip_id:
+    type: code
+    description: Channel strip id
+    access: property
+    code:
+      python: return f"{self.index}.{self.subchannel if self.is_split == 0xFF else 0}"

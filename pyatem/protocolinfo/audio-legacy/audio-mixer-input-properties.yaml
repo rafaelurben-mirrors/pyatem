@@ -1,0 +1,117 @@
+name: audio-mixer-input-properties
+code: AMIP
+description: |
+  Data from the `AMmO`. Settings for a channel strip on legacy audio units.
+type: field
+fields:
+  - offset: 0
+    size: 2
+    type: u16
+    name: index
+    description: Audio source index
+    repr: full
+  - offset: 2
+    size: 1
+    type: u8
+    name: type
+    description: Type
+    enum:
+      0:
+        description: External video
+      1:
+        description: Media Player
+      2:
+        description: External Audio
+  - offset: 3
+    size: 2
+    type: "?"
+    description: padding
+  - offset: 5
+    size: 1
+    type: bool
+    name: is_media_player
+    description: From Media Player
+  - offset: 6
+    size: 1
+    type: u8
+    name: number
+    description: Plug type?
+  - offset: 7
+    size: 1
+    type: u8
+    name: mix_option
+    description: Mix option
+    enum:
+      0:
+        description: "Off"
+      1:
+        description: "On"
+      2:
+        description: "AFV"
+  - offset: 8
+    size: 1
+    type: "?"
+    description: unknown
+  - offset: 9
+    size: 2
+    type: u16
+    name: volume
+    description: Volume
+    min: 0
+    max: 65381
+    repr: full
+  - offset: 11
+    size: 2
+    type: i16
+    name: pan
+    description: Pan
+    min: -10000
+    max: 10000
+    repr: full
+  - offset: 13
+    size: 3
+    type: "?"
+    description: padding
+
+calculated:
+  strip_id:
+    type: format
+    fstring: '{index}.0'
+    description: Channel strip id
+
+#  Old second definition:
+#     ====== ==== ====== ===========
+#    Offset Size Type   Descriptions
+#    ====== ==== ====== ===========
+#    0      2    u16    Audio source index
+#    2      1    u8     Input type
+#    3      2    ?      unknown
+#    5      1    u8     Index in group
+#    6      1    ?      ?
+#    7      1    u8     Input plug
+#    8      1    u8     State [0=off, 1=on, 2=afv]
+#    10     2    u16    Channel volume
+#    12     2    i16    Channel balance [-10000 - 10000]
+#    ====== ==== ====== ===========
+#
+#    === ==========
+#    Val Input type
+#    === ==========
+#    0   External video input
+#    1   Media player audio
+#    2   External audio input
+#    === ==========
+#
+#    === =========
+#    Val Plug type
+#    === =========
+#    0   Internal
+#    1   SDI
+#    2   HDMI
+#    3   Component
+#    4   Composite
+#    5   SVideo
+#    32  XLR
+#    64  AES/EBU
+#    128 RCA
+#    === =========

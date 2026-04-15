@@ -1,0 +1,113 @@
+name: dkey-properties
+code: DskP
+description: |
+  Data from the `DskP`. Downstream keyer info.
+type: field
+serialize: true
+fields:
+  - offset: 0
+    size: 1
+    type: u8
+    name: index
+    description: Downstream keyer index
+    default: 0
+    repr: full
+    unique: true
+    restore:
+      - cmd: dkey-tie
+        key: index
+      - cmd: dkey-rate
+        key: index
+      - cmd: dkey-gain
+        key: index
+      - cmd: dkey-mask
+        key: index
+  - offset: 1
+    size: 1
+    type: bool
+    name: tie
+    description: padding
+    repr: full
+    restore: dkey-tie
+  - offset: 2
+    size: 1
+    type: u8
+    name: rate
+    description: Transition rate in frames
+    repr: full
+    restore: dkey-rate
+  - offset: 3
+    size: 1
+    type: bool
+    name: premultiplied
+    description: Mask is pre-multiplied alpha
+    restore: dkey-gain
+  - offset: 4
+    size: 2
+    type: u16
+    name: clip
+    description: Clip
+    min: 0
+    max: 1000
+    restore: dkey-gain
+  - offset: 6
+    size: 2
+    type: u16
+    name: gain
+    description: Gain
+    min: 0
+    max: 1000
+    restore: dkey-gain
+  - offset: 8
+    size: 1
+    type: bool
+    name: invert_key
+    description: Invert key
+    restore:
+      cmd: dkey-gain
+      key: invert
+  - offset: 9
+    size: 1
+    type: bool
+    name: masked
+    description: Enable mask
+    restore:
+      cmd: dkey-mask
+      key: enabled
+    repr: full
+  - offset: 10
+    size: 2
+    type: i16
+    name: top
+    description: Mask top
+    min: -9000
+    max: 9000
+    restore: dkey-mask
+  - offset: 12
+    size: 2
+    type: i16
+    name: bottom
+    description: Mask bottom
+    min: -9000
+    max: 9000
+    restore: dkey-mask
+  - offset: 14
+    size: 2
+    type: i16
+    name: left
+    description: Mask left
+    min: -9000
+    max: 9000
+    restore: dkey-mask
+  - offset: 16
+    size: 2
+    type: i16
+    name: right
+    description: Mask right
+    min: -9000
+    max: 9000
+    restore: dkey-mask
+  - offset: 18
+    size: 2
+    type: "?"
+    description: padding

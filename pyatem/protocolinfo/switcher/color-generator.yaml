@@ -12,7 +12,7 @@ fields:
     default: 0
     repr: full
     unique: true
-    restore: ColorGeneratorCommand
+    restore: color-generator
   - offset: 1
     size: 1
     type: "?"
@@ -26,7 +26,7 @@ fields:
     out_min: 0.0
     description: Hue
     repr: full
-    restore: ColorGeneratorCommand
+    restore: color-generator
   - offset: 4
     size: 2
     type: u16
@@ -35,7 +35,7 @@ fields:
     out_max: 1.0
     description: Saturation
     repr: full
-    restore: ColorGeneratorCommand
+    restore: color-generator
   - offset: 6
     size: 2
     type: u16
@@ -44,7 +44,7 @@ fields:
     out_max: 1.0
     description: Luma
     repr: full
-    restore: ColorGeneratorCommand
+    restore: color-generator
 
 calculated:
   get_rgb:

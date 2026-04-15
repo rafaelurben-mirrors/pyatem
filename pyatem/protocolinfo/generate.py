@@ -111,9 +111,11 @@ def load_field(field, var, i):
     if field['type'] == 'string' and isinstance(field['size'], int):
         return [(field['name'], process(field, f'self._get_string({var}[{i}])'))]
     elif field['type'] == 'string':
-        return [(field['name']+'_len', process(field, f"{var}[{i}]"))]
+        return [(field['name'] + '_len', process(field, f"{var}[{i}]"))]
     elif 'bitfield' in field:
         result = []
+        if 'bitfield_raw' in field:
+            result.append((field['name'], process(field, f"{var}[{i}]")))
         for bit in field['bitfield']:
             bf = field['bitfield'][bit]
             result.append((bf["name"], f"{var}[{i}] & (1 << {bit}) != 0"))
@@ -138,7 +140,10 @@ def generate_init(raw):
     result += INDENT + ':param raw: Bytes containing the field contents\n'
     result += INDENT + '"""\n'
     result += INDENT + 'self.raw = raw\n'
-    result += INDENT + 'field = self.STRUCT.unpack(raw)\n'
+    if 'repeated' in raw:
+        result += INDENT + 'field = self.STRUCT.unpack_from(raw, 0)\n'
+    else:
+        result += INDENT + 'field = self.STRUCT.unpack(raw)\n'
 
     i = 0
     for field in raw['fields']:
@@ -155,6 +160,10 @@ def generate_init(raw):
                 rs['format'] = field['repeat']['format']
             if 'key' in field['repeat']:
                 rs['key'] = field['repeat']['key']
+            if 'key_format' in field['repeat']:
+                rs['key_format'] = field['repeat']['key_format']
+            if 'single' in field['repeat']:
+                rs['single'] = field['repeat']['single']
             if rs['store'] == 'list':
                 result += INDENT + f'self.{rs["name"]} = []\n'
             elif rs['store'] == 'dict':
@@ -164,6 +173,16 @@ def generate_init(raw):
                 continue
             result += INDENT + f'for i in range(self.{field["name"]}):\n'
             result += INDENT * 2 + 'rf = self.REPEATED.unpack_from(raw, self.STRUCT.size + (i * self.REPEATED.size))\n'
+
+            if 'key_format' in rs:
+                fstr = rs['key_format']
+                i = 0
+                for f in raw['repeated']:
+                    if 'name' not in f:
+                        continue
+                    fstr = fstr.replace('{' + f['name'] + '}', '{rf[' + str(i) + ']}')
+                    i += 1
+                result += INDENT * 2 + f'key = f"{fstr}"\n'
 
             smap = {}
             j = 0
@@ -177,12 +196,17 @@ def generate_init(raw):
             if rs['store'] == 'list':
                 result += '.append('
             elif rs['store'] == 'dict':
-                result += f'[rf[{smap[rs["key"]]}]] = '
+                if 'key_format' in rs:
+                    result += f'[key] = '
+                else:
+                    result += f'[rf[{smap[rs["key"]]}]] = '
 
             if rs['format'] == 'tuple':
                 result += '('
             elif rs['format'] == 'dict':
                 result += '{\n'
+            elif rs['format'] == 'single':
+                pass
 
             j = 0
             for rf in raw['repeated']:
@@ -196,6 +220,9 @@ def generate_init(raw):
                         result += f'{srf[1]}, '
                     elif rs['format'] == 'dict':
                         result += INDENT * 3 + f'"{srf[0]}": {srf[1]},\n'
+                    elif rs['format'] == 'single':
+                        if rs['single'] == rf['name']:
+                            result += srf[1]
                 j += 1
             if 'calculated' in raw:
                 for name in raw['calculated']:
@@ -255,12 +282,16 @@ def generate_init(raw):
             if cf['type'] == 'format':
                 fstr = cf['fstring']
                 for f in raw['fields']:
+                    if 'name' not in f:
+                        continue
                     fstr = fstr.replace('{' + f['name'] + '}', '{self.' + f['name'] + '}')
                 result += 'f"' + fstr + '"\n'
             elif cf['type'] == 'enum':
                 keys = list(sorted(list(enums[cf['source']])))
                 index = keys.index(cf["key"])
                 result += f'lut_{cf["source"]}[self.{cf["source"]}][{index}]\n'
+            elif cf['type'] == 'code':
+                result += cf['code']['python'] + '\n'
 
     return result
 
@@ -341,15 +372,26 @@ def generate_serialize_restore(raw, cname):
     for field in raw['fields']:
         if 'restore' not in field:
             continue
+        cmds = []
         if isinstance(field['restore'], str):
             cmd = field['restore']
             target = field['name']
+            cmds.append((cmd, target))
+        elif isinstance(field['restore'], dict):
+            cmd = field['restore']['cmd']
+            target = field['restore']['key']
+            cmds.append((cmd, target))
+        elif isinstance(field['restore'], list):
+            for item in field['restore']:
+                cmds.append((item['cmd'], item['key']))
         else:
             raise RuntimeError("Not implemented")
 
-        if cmd not in commands:
-            commands[cmd] = []
-        commands[cmd].append(f'{target}=data["{field["name"]}"]')
+        for cmd, target in cmds:
+            cmd = cmd.replace('-', ' ').title().replace(' ', '') + "Command"
+            if cmd not in commands:
+                commands[cmd] = []
+            commands[cmd].append(f'{target}=data["{field["name"]}"]')
     for cmd in commands:
         result += INDENT + f'from pyatem.command import {cmd}\n'
     result += INDENT + 'return [\n'

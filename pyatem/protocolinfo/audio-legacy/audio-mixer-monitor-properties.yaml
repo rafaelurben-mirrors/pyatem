@@ -1,0 +1,51 @@
+name: audio-mixer-monitor-properties
+code: AMmO
+description: |
+  Data from the `AMmO`. Settings for the monitor bus on legacy audio units.
+type: field
+fields:
+  - offset: 0
+    size: 1
+    type: bool
+    name: enabled
+    description: Monitoring enabled
+    repr: full
+  - offset: 1
+    size: 1
+    type: "?"
+    description: padding
+  - offset: 2
+    size: 2
+    type: u16
+    name: volume
+    description: Volume
+    repr: full
+  - offset: 4
+    size: 1
+    type: bool
+    name: mute
+    description: Mute
+  - offset: 5
+    size: 1
+    type: bool
+    name: solo
+    description: Solo
+  - offset: 6
+    size: 2
+    type: u16
+    name: solo_source
+    description: Solo source index
+  - offset: 8
+    size: 1
+    type: bool
+    name: dim
+    description: Dim
+  - offset: 9
+    size: 1
+    type: "?"
+    description: padding
+  - offset: 10
+    size: 2
+    type: u16
+    name: dim_volume
+    description: Dim volume

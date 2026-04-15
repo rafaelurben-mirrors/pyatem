@@ -32,11 +32,14 @@ def dump_memory(device, target):
 
     memory = b''
     for offset in tqdm.tqdm(range(0x0000, 0xFFFF, 4)):
-        chunk = bytes(device.handle.ctrl_transfer(bmRequestType=0xc1,
-                                                  bRequest=83,
-                                                  wValue=offset,
-                                                  wIndex=0,
-                                                  data_or_wLength=4))
+        try:
+            chunk = bytes(device.handle.ctrl_transfer(bmRequestType=0xc1,
+                                                      bRequest=83,
+                                                      wValue=offset,
+                                                      wIndex=0,
+                                                      data_or_wLength=4))
+        except:
+            chunk = b'\0\0\0\0'
         memory += chunk
 
     with open(target, 'wb') as handle:

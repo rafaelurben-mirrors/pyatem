@@ -66,6 +66,45 @@ class TestTopologyField(TestCase):
         self.assertEqual(False, field.only_configurable_outputs, msg="TopologyField.only_configurable_outputs")
 
 
+from .fields import FairlightSoloField
+
+class TestFairlightSoloField(TestCase):
+    def test_aminiextreme1(self):
+        raw = b'\x01\x15\xe8\x90\xff\xff\xfd\xa8\x05\x16\xff\xff\xff\xff\x01\x00\xff\xff\xff\xff\xff\xff\x01\x00'
+        field = FairlightSoloField(raw)
+        self.assertEqual('1302.0', field.strip_id, msg="FairlightSoloField.strip_id")
+        self.assertEqual(True, field.solo, msg="FairlightSoloField.solo")
+        self.assertEqual(1302, field.channel, msg="FairlightSoloField.channel")
+        self.assertEqual(0, field.subchannel, msg="FairlightSoloField.subchannel")
+        self.assertEqual(1, field.is_split_lr, msg="FairlightSoloField.is_split_lr")
+
+
+from .fields import FairlightHeadphonesField
+
+class TestFairlightHeadphonesField(TestCase):
+    def test_aminiextreme1(self):
+        raw = b'\x00\x00\x00<\xff\xff\xfd\xa8\x00\x00\xff\xff\xff\xff\xe8\x90\x00lSr\xff\xff\xe8\x90\x00\x00\x01\x00\xff\xff\xe8\x90'
+        field = FairlightHeadphonesField(raw)
+        self.assertEqual(False, field.unmuted, msg="FairlightHeadphonesField.unmuted")
+        self.assertEqual(60, field.volume, msg="FairlightHeadphonesField.volume")
+
+
+from .fields import FairlightTallyField
+
+class TestFairlightTallyField(TestCase):
+    def test_input1(self):
+        raw = b'\x00\n\xc3\x00\x0b\xcc\x00\x0b\xff\xff\xff\xff\xff\xff\x01\x00\x00\x01\x01\xff\xff\xff\xff\xff\xff\x01\x00\x00\x02\x00\xff\xff\xff\xff\xff\xff\x01\x00\x00\x03\x00\xff\xff\xff\xff\xff\xff\x01\x00\x00\x04\x00\xff\xff\xff\xff\xff\xff\x01\x00\x00\x05\x00\xff\xff\xff\xff\xff\xff\x01\x00\x00\x06\x00\xff\xff\xff\xff\xff\xff\x01\x00\x00\x07\x00\xff\xff\xff\xff\xff\xff\x01\x00\x00\x08\x00\xff\xff\xff\xff\xff\xff\x01\x00\x05\x15\x00\xff\xff\xff\xff\xff\xff\x01\x00\x05\x16\x00\x01\x00'
+        field = FairlightTallyField(raw)
+        self.assertEqual(10, field.num, msg="FairlightTallyField.num")
+        self.assertEqual({'1.0': True, '2.0': False, '3.0': False, '4.0': False, '5.0': False, '6.0': False, '7.0': False, '8.0': False, '1301.0': False, '1302.0': False}, field.tally, msg="FairlightTallyField.tally")
+
+    def test_mic1(self):
+        raw = b'\x00\n\xc3\x00\x0b\xcc\x00\x0b\xff\xff\xff\xff\xff\xff\x01\x00\x00\x01\x00\xff\xff\xff\xff\xff\xff\x01\x00\x00\x02\x00\xff\xff\xff\xff\xff\xff\x01\x00\x00\x03\x00\xff\xff\xff\xff\xff\xff\x01\x00\x00\x04\x00\xff\xff\xff\xff\xff\xff\x01\x00\x00\x05\x00\xff\xff\xff\xff\xff\xff\x01\x00\x00\x06\x00\xff\xff\xff\xff\xff\xff\x01\x00\x00\x07\x00\xff\xff\xff\xff\xff\xff\x01\x00\x00\x08\x00\xff\xff\xff\xff\xff\xff\x01\x00\x05\x15\x01\xff\xff\xff\xff\xff\xff\x01\x00\x05\x16\x00\x01\x00'
+        field = FairlightTallyField(raw)
+        self.assertEqual(10, field.num, msg="FairlightTallyField.num")
+        self.assertEqual({'1.0': False, '2.0': False, '3.0': False, '4.0': False, '5.0': False, '6.0': False, '7.0': False, '8.0': False, '1301.0': True, '1302.0': False}, field.tally, msg="FairlightTallyField.tally")
+
+
 from .fields import InputPropertiesField
 
 class TestInputPropertiesField(TestCase):

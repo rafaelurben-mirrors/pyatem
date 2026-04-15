@@ -1,0 +1,26 @@
+name: audio-mixer-master-properties
+code: AMMO
+description: |
+  Data from the `AMMO`. Settings for the master bus on legacy audio units.
+type: field
+fields:
+  - offset: 0
+    size: 2
+    type: u16
+    name: volume
+    description: Program Gain
+    repr: full
+  - offset: 2
+    size: 2
+    type: "?"
+    description: padding
+  - offset: 4
+    size: 1
+    type: bool
+    name: afv
+    description: Audio-follow-video, links the master gain to the fade-to-black transition
+    repr: full
+  - offset: 5
+    size: 3
+    type: "?"
+    description: padding

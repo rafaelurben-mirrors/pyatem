@@ -1,0 +1,75 @@
+name: transition-wipe
+code: TWpP
+description: |
+  Data from the `TMxP` field. This defines the settings that are unique to the "Wipe" transition
+type: field
+fields:
+  - offset: 0
+    size: 1
+    type: u8
+    name: index
+    description: M/E Index
+    default: 0
+    repr: full
+    unique: true
+  - offset: 1
+    size: 1
+    type: u8
+    name: rate
+    description: Rate in frames
+    repr: full
+  - offset: 2
+    size: 1
+    type: u8
+    name: pattern
+    description: Pattern id
+    repr: full
+  - offset: 3
+    size: 1
+    type: "?"
+    description: padding
+  - offset: 4
+    size: 2
+    type: u16
+    name: width
+    description: Border width
+  - offset: 6
+    size: 2
+    type: u16
+    name: source
+    description: Border fill source index
+  - offset: 8
+    size: 2
+    type: u16
+    name: symmetry
+    description: Symmetry
+  - offset: 10
+    size: 2
+    type: u16
+    name: softness
+    description: Softness
+  - offset: 12
+    size: 2
+    type: u16
+    name: positionx
+    description: Origin position X
+  - offset: 14
+    size: 2
+    type: u16
+    name: positiony
+    description: Origin position Y
+  - offset: 16
+    size: 1
+    type: bool
+    name: reverse
+    description: Reverse
+  - offset: 17
+    size: 1
+    type: bool
+    name: flipflop
+    description: Flip flop
+  - offset: 18
+    size: 2
+    type: "?"
+    description: padding
+

@@ -1,0 +1,29 @@
+name: audio-mixer-tally
+code: AMTl
+description: Data from the `TlIn`. Encodes the state of tally lights on the audio mixer.
+type: field
+fields:
+  - offset: 0
+    size: 2
+    type: u16
+    name: num
+    description: Total number of tally lights
+    repr: full
+    repeat:
+      name: tally
+      store: dict
+      key: source
+      key_format: "{source}.0"
+      format: single
+      single: tally
+repeated:
+  - offset: 0
+    size: 2
+    type: u16
+    name: source
+    description: Audio Source
+  - offset: 0
+    size: 1
+    type: bool
+    name: tally
+    description: IsMixedIn

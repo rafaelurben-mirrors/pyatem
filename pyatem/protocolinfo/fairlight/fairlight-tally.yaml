@@ -1,0 +1,77 @@
+name: fairlight-tally
+code: FMTl
+description: Data from the `FMTl`. Encodes the state of tally lights on the audio mixer
+type: field
+fields:
+  - offset: 0
+    size: 2
+    type: u16
+    name: num
+    description: Total number of tally lights
+    repr: full
+    repeat:
+      name: tally
+      store: dict
+      key: source
+      key_format: "{source}.{subchan}"
+      format: single
+      single: tally
+  - offset: 2
+    size: 6
+    type: "?"
+    description: unknown
+
+repeated:
+  - offset: 0
+    size: 7
+    type: "?"
+    description: unknown
+  - offset: 7
+    size: 1
+    type: u8
+    name: subchan
+    description: Subchannel index
+  - offset: 8
+    size: 2
+    type: u16
+    name: source
+    description: Source index
+  - offset: 10
+    size: 1
+    type: bool
+    name: tally
+    description: On air
+
+tests:
+  - name: input1
+    label: Only input channel 1 enabled  ATEM Mini Extreme
+    raw: 000AC3000BCC000BFFFFFFFFFFFF0100000101FFFFFFFFFFFF0100000200FFFFFFFFFFFF0100000300FFFFFFFFFFFF0100000400FFFFFFFFFFFF0100000500FFFFFFFFFFFF0100000600FFFFFFFFFFFF0100000700FFFFFFFFFFFF0100000800FFFFFFFFFFFF0100051500FFFFFFFFFFFF01000516000100
+    check:
+      num: 10
+      tally:
+        "1.0": true
+        "2.0": false
+        "3.0": false
+        "4.0": false
+        "5.0": false
+        "6.0": false
+        "7.0": false
+        "8.0": false
+        "1301.0": false
+        "1302.0": false
+  - name: mic1
+    label: Only analog microphone 1 enabled  ATEM Mini Extreme
+    raw: 000AC3000BCC000BFFFFFFFFFFFF0100000100FFFFFFFFFFFF0100000200FFFFFFFFFFFF0100000300FFFFFFFFFFFF0100000400FFFFFFFFFFFF0100000500FFFFFFFFFFFF0100000600FFFFFFFFFFFF0100000700FFFFFFFFFFFF0100000800FFFFFFFFFFFF0100051501FFFFFFFFFFFF01000516000100
+    check:
+      num: 10
+      tally:
+        "1.0": false
+        "2.0": false
+        "3.0": false
+        "4.0": false
+        "5.0": false
+        "6.0": false
+        "7.0": false
+        "8.0": false
+        "1301.0": true
+        "1302.0": false

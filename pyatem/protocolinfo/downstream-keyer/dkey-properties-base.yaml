@@ -1,0 +1,46 @@
+name: dkey-properties-base
+code: DskB
+description: |
+  Data from the `DskB`. Downstream keyer base info.
+type: field
+serialize: true
+fields:
+  - offset: 0
+    size: 1
+    type: u8
+    name: index
+    description: Downstream keyer index
+    default: 0
+    repr: full
+    unique: true
+    restore:
+      - cmd: dkey-set-fill
+        key: index
+      - cmd: dkey-set-key
+        key: index
+  - offset: 1
+    size: 1
+    type: "?"
+    description: padding
+  - offset: 2
+    size: 2
+    type: u16
+    name: fill_source
+    description: Fill source index
+    repr: full
+    restore:
+      cmd: dkey-set-fill
+      key: source
+  - offset: 4
+    size: 2
+    type: u16
+    name: key_source
+    description: Key source index
+    repr: full
+    restore:
+      cmd: dkey-set-key
+      key: source
+  - offset: 6
+    size: 2
+    type: "?"
+    description: padding

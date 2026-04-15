@@ -1,0 +1,17 @@
+name: fairlight-strip-delete
+code: FASD
+description: |
+  Data from the `FASD`. Fairlight strip delete, received only when changing the source routing in fairlight to remove
+  channels that have changed.
+type: field
+fields:
+  - offset: 0
+    size: 2
+    type: u16
+    name: index
+    description: Audio source index
+    repr: full
+  - offset: 2
+    size: 14
+    type: "?"
+    description: unknown

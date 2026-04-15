@@ -1,0 +1,24 @@
+name: fade-to-black
+code: FtbP
+description: |
+  Data from the `FtbP`. Settings for the fade-to-black transition.
+type: field
+fields:
+  - offset: 0
+    size: 1
+    type: u8
+    name: index
+    description: M/E Index
+    default: 0
+    repr: full
+    unique: true
+  - offset: 1
+    size: 1
+    type: u8
+    name: rate
+    description: Rate in frames
+    repr: full
+  - offset: 2
+    size: 2
+    type: "?"
+    description: padding

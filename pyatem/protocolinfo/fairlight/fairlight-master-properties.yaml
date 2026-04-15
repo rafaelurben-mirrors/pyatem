@@ -1,0 +1,54 @@
+name: fairlight-master-properties
+code: FAMP
+description: |
+  Data from the `AMMO`. Settings for the master bus on fairlight audio units.
+type: field
+fields:
+  - offset: 0
+    size: 1
+    type: "?"
+    description: unknown
+  - offset: 1
+    size: 1
+    type: bool
+    name: eq_enable
+    description: Enable master EQ
+  - offset: 2
+    size: 4
+    type: "?"
+    description: unknown
+  - offset: 6
+    size: 2
+    type: i16
+    name: eq_gain
+    description: EQ gain
+    min: -2000
+    max: 2000
+  - offset: 8
+    size: 2
+    type: "?"
+    description: unknown
+  - offset: 10
+    size: 2
+    type: u16
+    name: dynamics_gain
+    description: Dynamics make-up gain
+    max: 2000
+    repr: full
+  - offset: 12
+    size: 4
+    type: i32
+    name: volume
+    description: Master volume
+    min: -10000
+    max: 1000
+    repr: full
+  - offset: 16
+    size: 1
+    type: bool
+    name: afv
+    description: Audio follow video
+  - offset: 17
+    size: 3
+    type: "?"
+    description: padding

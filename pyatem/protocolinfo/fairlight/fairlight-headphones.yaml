@@ -1,0 +1,42 @@
+name: fairlight-headphones
+code: FMHP
+description: |
+  Data from the `FMHP`, phones output volume and mute
+
+  This doesn't get triggered when soloing channels.
+type: field
+fields:
+  - offset: 0
+    size: 4
+    type: i32
+    name: volume
+    description: Volume in 0.01dB increments
+    repr: full
+    min: -60000
+    max: 6000
+  - offset: 5
+    size: 4
+    type: "?"
+    description: unknown
+  - offset: 8
+    size: 1
+    type: bool
+    name: unmuted
+    description: Muted (0) / Unmuted (1)
+  - offset: 9
+    size: 1
+    type: u8
+    name: last_solo
+    description: Last soloed channel (just the main part)
+  - offset: 10
+    size: 22
+    type: "?"
+    description: unknown
+
+tests:
+  - name: aminiextreme1
+    label: AAAH
+    raw: 0000003CFFFFFDA80000FFFFFFFFE890006C5372FFFFE89000000100FFFFE890
+    check:
+      unmuted: false
+      volume: 60

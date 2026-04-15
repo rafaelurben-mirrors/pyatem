@@ -1,0 +1,124 @@
+name: atem-eq-band-properties
+code: AEBP
+description: |
+  Data from the `AEBP` field. This encodes the EQ settings in the fairlight mixer. For every channel there will
+  be 6 off these fields sent, one for every band of the EQ. The "possible band filters" differentiates the first
+  and last band which have a different option list for the filter dropdown in the UI.
+type: field
+fields:
+  - offset: 0
+    size: 2
+    type: u16
+    name: index
+    description: Audio source index
+    repr: full
+  - offset: 2
+    size: 12
+    type: "?"
+    description: unknown
+  - offset: 14
+    size: 1
+    type: u8
+    name: is_split
+    description: Split indicator
+  - offset: 15
+    size: 1
+    type: u8
+    name: subchannel
+    description: Subchannel index
+  - offset: 16
+    size: 1
+    type: u8
+    name: band_index
+    description: Band index
+  - offset: 17
+    size: 1
+    type: bool
+    name: band_enabled
+    description: Band enabled
+  - offset: 18
+    size: 1
+    type: u8
+    name: band_possible_filters
+    description: Possible filters for this band
+    bitfield_raw: true
+    bitfield:
+      0:
+        name: can_lowshelf
+        description: Low shelf
+      1:
+        name: can_lowpass
+        description: Low pass
+      2:
+        name: can_bell
+        description: Bell
+      3:
+        name: can_notch
+        description: Notch
+      4:
+        name: can_highpass
+        description: High pass
+      5:
+        name: can_highshelf
+        description: High shelf
+  - offset: 19
+    size: 1
+    type: u8
+    name: band_filter
+    description: Band filter
+    enum_const: name
+    enum:
+      1:
+        name: LOW_SHELF
+        description: Low shelf
+      2:
+        name: LOW_PASS
+        description: Low pass
+      4:
+        name: BELL
+        description: Bell
+      8:
+        name: NOTCH
+        description: Notch
+      10:
+        name: HIGH_PASS
+        description: High pass
+      20:
+        name: HIGH_SHELF
+        description: High shelf
+  - offset: 20
+    size: 1
+    type: "?"
+    description: padding
+  - offset: 21
+    size: 1
+    type: u8
+    name: band_freq_range
+    description: Band frequency range
+  - offset: 22
+    size: 4
+    type: "?"
+    description: padding
+  - offset: 26
+    size: 2
+    type: u16
+    name: band_frequency
+    description: Band frequency
+  - offset: 28
+    size: 4
+    type: i32
+    name: band_gain
+    description: Band gain
+  - offset: 32
+    size: 2
+    type: u16
+    name: band_q
+    description: Band Q
+
+calculated:
+  strip_id:
+    type: code
+    description: Channel strip id
+    access: property
+    code:
+      python: return f"{self.index}.{self.subchannel if self.is_split == 0xFF else 0}"

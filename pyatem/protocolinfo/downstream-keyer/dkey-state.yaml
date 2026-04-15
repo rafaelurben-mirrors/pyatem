@@ -1,0 +1,42 @@
+name: dkey-state
+code: DskS
+description: |
+  Data from the `DskS`. Shows the runtime state of the keyer.
+type: field
+fields:
+  - offset: 0
+    size: 1
+    type: u8
+    name: index
+    description: Downstream keyer index
+    default: 0
+    repr: full
+    unique: true
+  - offset: 1
+    size: 1
+    type: bool
+    name: on_air
+    description: On air
+    repr: full
+  - offset: 2
+    size: 1
+    type: bool
+    name: is_transitioning
+    description: Is transitioning
+    repr: full
+  - offset: 3
+    size: 1
+    type: bool
+    name: is_autotransitioning
+    description: Is autotransitioning
+    repr: full
+  - offset: 4
+    size: 1
+    type: u8
+    name: frames_remaining
+    description: Frames remaining in transition
+    repr: full
+  - offset: 5
+    size: 3
+    type: "?"
+    description: padding

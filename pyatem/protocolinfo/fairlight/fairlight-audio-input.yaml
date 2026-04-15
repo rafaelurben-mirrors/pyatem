@@ -1,0 +1,56 @@
+name: fairlight-audio-input
+code: FAIP
+description: |
+  Data from the `FAIP`. Describes the inputs to the fairlight mixer.
+type: field
+fields:
+  - offset: 0
+    size: 2
+    type: u16
+    name: index
+    description: Audio source index
+    repr: full
+  - offset: 2
+    size: 1
+    type: u8
+    name: type
+    description: Input type
+    enum:
+      0:
+        description: External video input
+      1:
+        description: Media player audio
+      2:
+        description: External audio input
+  - offset: 3
+    size: 2
+    type: "?"
+    description: padding
+  - offset: 5
+    size: 1
+    type: u8
+    name: number
+    description: Index in group
+  - offset: 6
+    size: 4
+    type: "?"
+    description: unknown
+  - offset: 10
+    size: 1
+    type: u8
+    name: split
+    description: Changes when stereo is split into dual mono
+  - offset: 11
+    size: 1
+    type: "?"
+    description: padding
+  - offset: 12
+    size: 1
+    type: u8
+    name: level
+    description: Analog audio input level
+    enum:
+      1:
+        description: Mic level
+      2:
+        description: Line level

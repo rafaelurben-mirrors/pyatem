@@ -24,6 +24,275 @@ class FieldBase:
         return
 
 
+class AudioMixerTallyField(FieldBase):
+    """
+    Data from the `TlIn`. Encodes the state of tally lights on the audio mixer.
+
+    ====== ==== ====== ===========
+    Offset Size Type   Description
+    ====== ==== ====== ===========
+    0      2    u16    Total number of tally lights
+    ====== ==== ====== ===========
+
+    Followed by this repeated block:
+
+    ====== ==== ====== ===========
+    Offset Size Type   Description
+    ====== ==== ====== ===========
+    0      2    u16    Audio Source
+    0      1    bool   IsMixedIn
+    ====== ==== ====== ===========
+
+    After parsing:
+
+    :ivar num: Total number of tally lights
+    """
+
+    CODE = "AMTl"
+    STRUCT = struct.Struct('>H')
+    REPEATED = struct.Struct('>H?')
+
+    def __init__(self, raw: bytes):
+        """
+        :param raw: Bytes containing the field contents
+        """
+        self.raw = raw
+        field = self.STRUCT.unpack_from(raw, 0)
+        self.num = field[0]
+        self.tally = {}
+        for i in range(self.num):
+            rf = self.REPEATED.unpack_from(raw, self.STRUCT.size + (i * self.REPEATED.size))
+            key = f"{rf[0]}.0"
+            self.tally[key] = rf[1]
+
+    @classmethod
+    def create(cls, num: int) -> Self:
+        """
+        :param num: Total number of tally lights
+        :return: Instance of AudioMixerTallyField with the data applied
+        """
+        raw = cls.STRUCT.pack(num)
+        return cls(raw)
+
+    def uncreate(self) -> tuple:
+        """Create arguments to feed into AudioMixerTallyField.create()"""
+        return self.num,
+
+    def __repr__(self):
+        return f"<audio-mixer-tally num={self.num}>"
+
+
+class AudioMixerMasterPropertiesField(FieldBase):
+    """
+    Data from the `AMMO`. Settings for the master bus on legacy audio units.
+
+    ====== ==== ====== ===========
+    Offset Size Type   Description
+    ====== ==== ====== ===========
+    0      2    u16    Program Gain
+    2      2    ?      padding
+    4      1    bool   Audio-follow-video, links the master gain to the fade-to-black transition
+    5      3    ?      padding
+    ====== ==== ====== ===========
+
+    After parsing:
+
+    :ivar volume: Program Gain
+    :ivar afv: Audio-follow-video, links the master gain to the fade-to-black transition
+    """
+
+    CODE = "AMMO"
+    STRUCT = struct.Struct('>H2x ?3x')
+
+    def __init__(self, raw: bytes):
+        """
+        :param raw: Bytes containing the field contents
+        """
+        self.raw = raw
+        field = self.STRUCT.unpack(raw)
+        self.volume = field[0]
+        self.afv = field[1]
+
+    @classmethod
+    def create(cls, volume: int, afv: bool) -> Self:
+        """
+        :param volume: Program Gain
+        :param afv: Audio-follow-video, links the master gain to the fade-to-black transition
+        :return: Instance of AudioMixerMasterPropertiesField with the data applied
+        """
+        raw = cls.STRUCT.pack(volume, afv)
+        return cls(raw)
+
+    def uncreate(self) -> tuple:
+        """Create arguments to feed into AudioMixerMasterPropertiesField.create()"""
+        return self.volume, self.afv
+
+    def __repr__(self):
+        return f"<audio-mixer-master-properties volume={self.volume} afv={self.afv}>"
+
+
+class AudioMixerMonitorPropertiesField(FieldBase):
+    """
+    Data from the `AMmO`. Settings for the monitor bus on legacy audio units.
+
+    ====== ==== ====== ===========
+    Offset Size Type   Description
+    ====== ==== ====== ===========
+    0      1    bool   Monitoring enabled
+    1      1    ?      padding
+    2      2    u16    Volume
+    4      1    bool   Mute
+    5      1    bool   Solo
+    6      2    u16    Solo source index
+    8      1    bool   Dim
+    9      1    ?      padding
+    10     2    u16    Dim volume
+    ====== ==== ====== ===========
+
+    After parsing:
+
+    :ivar enabled: Monitoring enabled
+    :ivar volume: Volume
+    :ivar mute: Mute
+    :ivar solo: Solo
+    :ivar solo_source: Solo source index
+    :ivar dim: Dim
+    :ivar dim_volume: Dim volume
+    """
+
+    CODE = "AMmO"
+    STRUCT = struct.Struct('>?xH ??H ?xH')
+
+    def __init__(self, raw: bytes):
+        """
+        :param raw: Bytes containing the field contents
+        """
+        self.raw = raw
+        field = self.STRUCT.unpack(raw)
+        self.enabled = field[0]
+        self.volume = field[1]
+        self.mute = field[2]
+        self.solo = field[3]
+        self.solo_source = field[4]
+        self.dim = field[5]
+        self.dim_volume = field[6]
+
+    @classmethod
+    def create(cls, enabled: bool, volume: int, mute: bool, solo: bool, solo_source: int, dim: bool, dim_volume: int) -> Self:
+        """
+        :param enabled: Monitoring enabled
+        :param volume: Volume
+        :param mute: Mute
+        :param solo: Solo
+        :param solo_source: Solo source index
+        :param dim: Dim
+        :param dim_volume: Dim volume
+        :return: Instance of AudioMixerMonitorPropertiesField with the data applied
+        """
+        raw = cls.STRUCT.pack(enabled, volume, mute, solo, solo_source, dim, dim_volume)
+        return cls(raw)
+
+    def uncreate(self) -> tuple:
+        """Create arguments to feed into AudioMixerMonitorPropertiesField.create()"""
+        return self.enabled, self.volume, self.mute, self.solo, self.solo_source, self.dim, self.dim_volume
+
+    def __repr__(self):
+        return f"<audio-mixer-monitor-properties enabled={self.enabled} volume={self.volume}>"
+
+
+class AudioMixerInputPropertiesField(FieldBase):
+    """
+    Data from the `AMmO`. Settings for a channel strip on legacy audio units.
+
+    ====== ==== ====== ===========
+    Offset Size Type   Description
+    ====== ==== ====== ===========
+    0      2    u16    Audio source index
+    2      1    u8     Type
+    3      2    ?      padding
+    5      1    bool   From Media Player
+    6      1    u8     Plug type?
+    7      1    u8     Mix option
+    8      1    ?      unknown
+    9      2    u16    Volume, [0-65381]
+    11     2    i16    Pan, [-10000-10000]
+    13     3    ?      padding
+    ====== ==== ====== ===========
+
+    The `Type` is an enum of these values:
+
+    === ====
+    Key Type
+    === ====
+    0   External video
+    1   Media Player
+    2   External Audio
+    === ====
+
+    The `Mix option` is an enum of these values:
+
+    === ==========
+    Key Mix option
+    === ==========
+    0   Off
+    1   On
+    2   AFV
+    === ==========
+
+    After parsing:
+
+    :ivar index: Audio source index
+    :ivar type: Type
+    :ivar is_media_player: From Media Player
+    :ivar number: Plug type?
+    :ivar mix_option: Mix option
+    :ivar volume: Volume, [0-65381]
+    :ivar pan: Pan, [-10000-10000]
+    :ivar strip_id: Channel strip id
+    """
+
+    CODE = "AMIP"
+    STRUCT = struct.Struct('>HB2x?BB xHh3x')
+
+    def __init__(self, raw: bytes):
+        """
+        :param raw: Bytes containing the field contents
+        """
+        self.raw = raw
+        field = self.STRUCT.unpack(raw)
+        self.index = field[0]
+        self.type = field[1]
+        self.is_media_player = field[2]
+        self.number = field[3]
+        self.mix_option = field[4]
+        self.volume = field[5]
+        self.pan = field[6]
+
+        self.strip_id = f"{self.index}.0"
+
+    @classmethod
+    def create(cls, index: int, type: int, is_media_player: bool, number: int, mix_option: int, volume: int, pan: int) -> Self:
+        """
+        :param index: Audio source index
+        :param type: Type
+        :param is_media_player: From Media Player
+        :param number: Plug type?
+        :param mix_option: Mix option
+        :param volume: Volume, [0-65381]
+        :param pan: Pan, [-10000-10000]
+        :return: Instance of AudioMixerInputPropertiesField with the data applied
+        """
+        raw = cls.STRUCT.pack(index, type, is_media_player, number, mix_option, volume, pan)
+        return cls(raw)
+
+    def uncreate(self) -> tuple:
+        """Create arguments to feed into AudioMixerInputPropertiesField.create()"""
+        return self.index, self.type, self.is_media_player, self.number, self.mix_option, self.volume, self.pan
+
+    def __repr__(self):
+        return f"<audio-mixer-input-properties index={self.index} volume={self.volume} pan={self.pan}>"
+
+
 class PreviewBusInputField(FieldBase):
     """
     Data from the `PrvI` field. This represents the active channel on the preview bus of the specific M/E unit.
@@ -217,7 +486,7 @@ class TallySourceField(FieldBase):
         :param raw: Bytes containing the field contents
         """
         self.raw = raw
-        field = self.STRUCT.unpack(raw)
+        field = self.STRUCT.unpack_from(raw, 0)
         self.num = field[0]
         self.tally = {}
         for i in range(self.num):
@@ -357,7 +626,7 @@ class TallyIndexField(FieldBase):
         :param raw: Bytes containing the field contents
         """
         self.raw = raw
-        field = self.STRUCT.unpack(raw)
+        field = self.STRUCT.unpack_from(raw, 0)
         self.num = field[0]
         self.tally = []
         for i in range(self.num):
@@ -379,6 +648,398 @@ class TallyIndexField(FieldBase):
 
     def __repr__(self):
         return f"<tally-index num={self.num}>"
+
+
+class KeyOnAirField(FieldBase):
+    """
+    Data from the `KeOn`. This is the on-air state of the upstream keyers
+
+    ====== ==== ====== ===========
+    Offset Size Type   Description
+    ====== ==== ====== ===========
+    0      1    u8     M/E Index
+    1      1    u8     Upstream keyer index
+    2      1    bool   On-air
+    3      1    ?      padding
+    ====== ==== ====== ===========
+
+    After parsing:
+
+    :ivar index: M/E Index
+    :ivar keyer: Upstream keyer index
+    :ivar enabled: On-air
+    """
+
+    CODE = "KeOn"
+    STRUCT = struct.Struct('>BB?x')
+
+    def __init__(self, raw: bytes):
+        """
+        :param raw: Bytes containing the field contents
+        """
+        self.raw = raw
+        field = self.STRUCT.unpack(raw)
+        self.index = field[0]
+        self.keyer = field[1]
+        self.enabled = field[2]
+
+    @classmethod
+    def create(cls, keyer: int, enabled: bool, index: int = 0) -> Self:
+        """
+        :param index: M/E Index, defaults to 0
+        :param keyer: Upstream keyer index
+        :param enabled: On-air
+        :return: Instance of KeyOnAirField with the data applied
+        """
+        raw = cls.STRUCT.pack(keyer, enabled, index)
+        return cls(raw)
+
+    def uncreate(self) -> tuple:
+        """Create arguments to feed into KeyOnAirField.create()"""
+        return self.keyer, self.enabled, self.index
+
+    def __repr__(self):
+        return f"<key-on-air index={self.index} keyer={self.keyer} enabled={self.enabled}>"
+
+
+class FadeToBlackField(FieldBase):
+    """
+    Data from the `FtbP`. Settings for the fade-to-black transition.
+
+    ====== ==== ====== ===========
+    Offset Size Type   Description
+    ====== ==== ====== ===========
+    0      1    u8     M/E Index
+    1      1    u8     Rate in frames
+    2      2    ?      padding
+    ====== ==== ====== ===========
+
+    After parsing:
+
+    :ivar index: M/E Index
+    :ivar rate: Rate in frames
+    """
+
+    CODE = "FtbP"
+    STRUCT = struct.Struct('>BB2x')
+
+    def __init__(self, raw: bytes):
+        """
+        :param raw: Bytes containing the field contents
+        """
+        self.raw = raw
+        field = self.STRUCT.unpack(raw)
+        self.index = field[0]
+        self.rate = field[1]
+
+    @classmethod
+    def create(cls, rate: int, index: int = 0) -> Self:
+        """
+        :param index: M/E Index, defaults to 0
+        :param rate: Rate in frames
+        :return: Instance of FadeToBlackField with the data applied
+        """
+        raw = cls.STRUCT.pack(rate, index)
+        return cls(raw)
+
+    def uncreate(self) -> tuple:
+        """Create arguments to feed into FadeToBlackField.create()"""
+        return self.rate, self.index
+
+    def __repr__(self):
+        return f"<fade-to-black index={self.index} rate={self.rate}>"
+
+
+class MediaplayerFileInfoField(FieldBase):
+    """
+    Data from the `MPfe`. This is the metadata about a single frame slot in the mediaplayer
+
+    ====== ==== ====== ===========
+    Offset Size Type   Description
+    ====== ==== ====== ===========
+    0      1    u8     Type
+    1      1    ?      padding
+    2      2    u16    Slot index
+    4      1    bool   Slot is used
+    5      16   bytes  The MD5 hash of the file in the slot
+    21     2    ?      padding
+    23     1    u8     Name of the slot, first byte is the number of characters
+    ====== ==== ====== ===========
+
+    The `Type` is an enum of these values:
+
+    === ====
+    Key Type
+    === ====
+    0   Still
+    === ====
+
+    After parsing:
+
+    :ivar type: Type
+    :ivar index: Slot index
+    :ivar is_used: Slot is used
+    :ivar hash: The MD5 hash of the file in the slot
+    :ivar name_len: Name of the slot, first byte is the number of characters
+    """
+
+    CODE = "MPfe"
+    STRUCT = struct.Struct('>BxH ?16s2xB')
+
+    def __init__(self, raw: bytes):
+        """
+        :param raw: Bytes containing the field contents
+        """
+        self.raw = raw
+        field = self.STRUCT.unpack(raw)
+        self.type = field[0]
+        self.index = field[1]
+        self.is_used = field[2]
+        self.hash = field[3]
+        self.name_len = field[4]
+        self.name = raw[self.STRUCT.size + self.name_len]
+
+    @classmethod
+    def create(cls, type: int, index: int, is_used: bool, hash: bytes, name_len: int) -> Self:
+        """
+        :param type: Type
+        :param index: Slot index
+        :param is_used: Slot is used
+        :param hash: The MD5 hash of the file in the slot
+        :param name_len: Name of the slot, first byte is the number of characters
+        :return: Instance of MediaplayerFileInfoField with the data applied
+        """
+        raw = cls.STRUCT.pack(type, index, is_used, hash, name_len)
+        return cls(raw)
+
+    def uncreate(self) -> tuple:
+        """Create arguments to feed into MediaplayerFileInfoField.create()"""
+        return self.type, self.index, self.is_used, self.hash, self.name_len
+
+    def __repr__(self):
+        return f"<mediaplayer-file-info type={self.type} index={self.index}>"
+
+
+class TopologyField(FieldBase):
+    """
+    Data from the `_top` field. This describes the internal video routing topology.
+
+    =================== ========= ======= ====== spec                Atem Mini 1M/E 4k TVS HD =================== =========
+    ======= ====== M/E units           1         1       1 upstream keyers     1         1       1 downstream keyers   1
+    2       2 dve                 1         1       1 stinger             0         1       0 supersources        0
+    0       0 multiview           0         1       1 rs485               0         1       1 =================== =========
+    ======= ======
+
+    ====== ==== ====== ===========
+    Offset Size Type   Description
+    ====== ==== ====== ===========
+    0      1    u8     Number of Mix/Effect units
+    1      1    u8     Total number of sources
+    2      1    u8     Number of downstream keyers
+    3      1    u8     Number of AUX outputs
+    4      1    u8     Number of Mix Minus outputs (SDI outputs with seperate audio mix)
+    5      1    u8     Number of media players
+    6      1    u8     Number of multiview generators
+    7      1    u8     Number of RS485 connectors
+    8      1    u8     Number of possible hyperdeck connections
+    9      1    u8     Number of DVE units that are assignable
+    10     1    u8     Number of stinger generators
+    11     1    u8     Number of supersource generators
+    12     1    bool   The multiviewer is routable
+    13     1    u8     Number of talkback channels
+    14     1    ?      unknown
+    15     1    ?      unknown
+    16     1    ?      unknown
+    17     1    ?      unknown
+    18     1    bool   Supports camera control
+    19     1    ?      unknown
+    20     1    ?      unknown
+    21     1    ?      unknown
+    22     1    bool   Use the new advanced chroma keyers
+    23     1    bool   The hardware has no fixed function outputs, only AUX busses
+    24     1    ?      unknown
+    25     1    ?      unknown
+    26     1    ?      unknown
+    27     1    ?      unknown
+    ====== ==== ====== ===========
+
+    After parsing:
+
+    :ivar me_units: Number of Mix/Effect units
+    :ivar sources: Total number of sources
+    :ivar downstream_keyers: Number of downstream keyers
+    :ivar aux_busses: Number of AUX outputs
+    :ivar mixminus_outputs: Number of Mix Minus outputs (SDI outputs with seperate audio mix)
+    :ivar mediaplayers: Number of media players
+    :ivar multiviewers: Number of multiview generators
+    :ivar rs485: Number of RS485 connectors
+    :ivar hyperdecks: Number of possible hyperdeck connections
+    :ivar dve: Number of DVE units that are assignable
+    :ivar stingers: Number of stinger generators
+    :ivar supersources: Number of supersource generators
+    :ivar multiviewer_routable: The multiviewer is routable
+    :ivar talkback_channels: Number of talkback channels
+    :ivar camera_control: Supports camera control
+    :ivar advanced_chroma_keyers: Use the new advanced chroma keyers
+    :ivar only_configurable_outputs: The hardware has no fixed function outputs, only AUX busses
+    """
+
+    CODE = "_top"
+    STRUCT = struct.Struct('>BBBB BBBB BBBB ?Bxx xx?x xx?? xxxx')
+
+    def __init__(self, raw: bytes):
+        """
+        :param raw: Bytes containing the field contents
+        """
+        self.raw = raw
+        field = self.STRUCT.unpack(raw)
+        self.me_units = field[0]
+        self.sources = field[1]
+        self.downstream_keyers = field[2]
+        self.aux_busses = field[3]
+        self.mixminus_outputs = field[4]
+        self.mediaplayers = field[5]
+        self.multiviewers = field[6]
+        self.rs485 = field[7]
+        self.hyperdecks = field[8]
+        self.dve = field[9]
+        self.stingers = field[10]
+        self.supersources = field[11]
+        self.multiviewer_routable = field[12]
+        self.talkback_channels = field[13]
+        self.camera_control = field[14]
+        self.advanced_chroma_keyers = field[15]
+        self.only_configurable_outputs = field[16]
+
+    @classmethod
+    def create(cls, me_units: int, sources: int, downstream_keyers: int, aux_busses: int, mixminus_outputs: int, mediaplayers: int, multiviewers: int, rs485: int, hyperdecks: int, dve: int, stingers: int, supersources: int, multiviewer_routable: bool, talkback_channels: int, camera_control: bool, advanced_chroma_keyers: bool, only_configurable_outputs: bool) -> Self:
+        """
+        :param me_units: Number of Mix/Effect units
+        :param sources: Total number of sources
+        :param downstream_keyers: Number of downstream keyers
+        :param aux_busses: Number of AUX outputs
+        :param mixminus_outputs: Number of Mix Minus outputs (SDI outputs with seperate audio mix)
+        :param mediaplayers: Number of media players
+        :param multiviewers: Number of multiview generators
+        :param rs485: Number of RS485 connectors
+        :param hyperdecks: Number of possible hyperdeck connections
+        :param dve: Number of DVE units that are assignable
+        :param stingers: Number of stinger generators
+        :param supersources: Number of supersource generators
+        :param multiviewer_routable: The multiviewer is routable
+        :param talkback_channels: Number of talkback channels
+        :param camera_control: Supports camera control
+        :param advanced_chroma_keyers: Use the new advanced chroma keyers
+        :param only_configurable_outputs: The hardware has no fixed function outputs, only AUX busses
+        :return: Instance of TopologyField with the data applied
+        """
+        raw = cls.STRUCT.pack(me_units, sources, downstream_keyers, aux_busses, mixminus_outputs, mediaplayers,
+            multiviewers, rs485, hyperdecks, dve, stingers, supersources, multiviewer_routable, talkback_channels,
+            camera_control, advanced_chroma_keyers, only_configurable_outputs)
+        return cls(raw)
+
+    def uncreate(self) -> tuple:
+        """Create arguments to feed into TopologyField.create()"""
+        return self.me_units, self.sources, self.downstream_keyers, self.aux_busses, self.mixminus_outputs, self.mediaplayers, self.multiviewers, self.rs485, self.hyperdecks, self.dve, self.stingers, self.supersources, self.multiviewer_routable, self.talkback_channels, self.camera_control, self.advanced_chroma_keyers, self.only_configurable_outputs
+
+    def __repr__(self):
+        return f"<topology me_units={self.me_units} sources={self.sources}>"
+
+
+class AuxOutputSourceField(FieldBase):
+    """
+    Data from the `AuxS`. The routing for the AUX outputs of the hardware.
+
+    ====== ==== ====== ===========
+    Offset Size Type   Description
+    ====== ==== ====== ===========
+    0      1    u8     Aux output index
+    1      1    ?      padding
+    2      2    u16    Source index
+    ====== ==== ====== ===========
+
+    After parsing:
+
+    :ivar index: Aux output index
+    :ivar source: Source index
+    """
+
+    CODE = "AuxS"
+    STRUCT = struct.Struct('>BxH')
+
+    def __init__(self, raw: bytes):
+        """
+        :param raw: Bytes containing the field contents
+        """
+        self.raw = raw
+        field = self.STRUCT.unpack(raw)
+        self.index = field[0]
+        self.source = field[1]
+
+    @classmethod
+    def create(cls, index: int, source: int) -> Self:
+        """
+        :param index: Aux output index
+        :param source: Source index
+        :return: Instance of AuxOutputSourceField with the data applied
+        """
+        raw = cls.STRUCT.pack(index, source)
+        return cls(raw)
+
+    def uncreate(self) -> tuple:
+        """Create arguments to feed into AuxOutputSourceField.create()"""
+        return self.index, self.source
+
+    def __repr__(self):
+        return f"<aux-output-source index={self.index} source={self.source}>"
+
+
+class TransitionMixField(FieldBase):
+    """
+    Data from the `TMxP` field. This defines the settings that are unique to the "Mix" transition
+
+    ====== ==== ====== ===========
+    Offset Size Type   Description
+    ====== ==== ====== ===========
+    0      1    u8     M/E Index
+    1      1    u8     Rate in frames
+    2      2    ?      padding
+    ====== ==== ====== ===========
+
+    After parsing:
+
+    :ivar index: M/E Index
+    :ivar rate: Rate in frames
+    """
+
+    CODE = "TMxP"
+    STRUCT = struct.Struct('>BB2x')
+
+    def __init__(self, raw: bytes):
+        """
+        :param raw: Bytes containing the field contents
+        """
+        self.raw = raw
+        field = self.STRUCT.unpack(raw)
+        self.index = field[0]
+        self.rate = field[1]
+
+    @classmethod
+    def create(cls, rate: int, index: int = 0) -> Self:
+        """
+        :param index: M/E Index, defaults to 0
+        :param rate: Rate in frames
+        :return: Instance of TransitionMixField with the data applied
+        """
+        raw = cls.STRUCT.pack(rate, index)
+        return cls(raw)
+
+    def uncreate(self) -> tuple:
+        """Create arguments to feed into TransitionMixField.create()"""
+        return self.rate, self.index
+
+    def __repr__(self):
+        return f"<transition-mix index={self.index} rate={self.rate}>"
 
 
 class TransitionSettingsField(FieldBase):
@@ -473,28 +1134,45 @@ class TransitionSettingsField(FieldBase):
         return f"<transition-settings index={self.index} style={self.style}>"
 
 
-class KeyOnAirField(FieldBase):
+class TransitionWipeField(FieldBase):
     """
-    Data from the `KeOn`. This is the on-air state of the upstream keyers
+    Data from the `TMxP` field. This defines the settings that are unique to the "Wipe" transition
 
     ====== ==== ====== ===========
     Offset Size Type   Description
     ====== ==== ====== ===========
     0      1    u8     M/E Index
-    1      1    u8     Upstream keyer index
-    2      1    bool   On-air
+    1      1    u8     Rate in frames
+    2      1    u8     Pattern id
     3      1    ?      padding
+    4      2    u16    Border width
+    6      2    u16    Border fill source index
+    8      2    u16    Symmetry
+    10     2    u16    Softness
+    12     2    u16    Origin position X
+    14     2    u16    Origin position Y
+    16     1    bool   Reverse
+    17     1    bool   Flip flop
+    18     2    ?      padding
     ====== ==== ====== ===========
 
     After parsing:
 
     :ivar index: M/E Index
-    :ivar keyer: Upstream keyer index
-    :ivar enabled: On-air
+    :ivar rate: Rate in frames
+    :ivar pattern: Pattern id
+    :ivar width: Border width
+    :ivar source: Border fill source index
+    :ivar symmetry: Symmetry
+    :ivar softness: Softness
+    :ivar positionx: Origin position X
+    :ivar positiony: Origin position Y
+    :ivar reverse: Reverse
+    :ivar flipflop: Flip flop
     """
 
-    CODE = "KeOn"
-    STRUCT = struct.Struct('>BB?x')
+    CODE = "TWpP"
+    STRUCT = struct.Struct('>BBBx HH HH HH ??2x')
 
     def __init__(self, raw: bytes):
         """
@@ -503,26 +1181,126 @@ class KeyOnAirField(FieldBase):
         self.raw = raw
         field = self.STRUCT.unpack(raw)
         self.index = field[0]
-        self.keyer = field[1]
-        self.enabled = field[2]
+        self.rate = field[1]
+        self.pattern = field[2]
+        self.width = field[3]
+        self.source = field[4]
+        self.symmetry = field[5]
+        self.softness = field[6]
+        self.positionx = field[7]
+        self.positiony = field[8]
+        self.reverse = field[9]
+        self.flipflop = field[10]
 
     @classmethod
-    def create(cls, keyer: int, enabled: bool, index: int = 0) -> Self:
+    def create(cls, rate: int, pattern: int, width: int, source: int, symmetry: int, softness: int, positionx: int, positiony: int, reverse: bool, flipflop: bool, index: int = 0) -> Self:
         """
         :param index: M/E Index, defaults to 0
-        :param keyer: Upstream keyer index
-        :param enabled: On-air
-        :return: Instance of KeyOnAirField with the data applied
+        :param rate: Rate in frames
+        :param pattern: Pattern id
+        :param width: Border width
+        :param source: Border fill source index
+        :param symmetry: Symmetry
+        :param softness: Softness
+        :param positionx: Origin position X
+        :param positiony: Origin position Y
+        :param reverse: Reverse
+        :param flipflop: Flip flop
+        :return: Instance of TransitionWipeField with the data applied
         """
-        raw = cls.STRUCT.pack(keyer, enabled, index)
+        raw = cls.STRUCT.pack(rate, pattern, width, source, symmetry, softness, positionx, positiony, reverse, flipflop,
+            index)
         return cls(raw)
 
     def uncreate(self) -> tuple:
-        """Create arguments to feed into KeyOnAirField.create()"""
-        return self.keyer, self.enabled, self.index
+        """Create arguments to feed into TransitionWipeField.create()"""
+        return self.rate, self.pattern, self.width, self.source, self.symmetry, self.softness, self.positionx, self.positiony, self.reverse, self.flipflop, self.index
 
     def __repr__(self):
-        return f"<key-on-air index={self.index} keyer={self.keyer} enabled={self.enabled}>"
+        return f"<transition-wipe index={self.index} rate={self.rate} pattern={self.pattern}>"
+
+
+class TransitionStingerField(FieldBase):
+    """
+    Data from the `TStP` field. This defines the settings that are unique to the "Stinger" transition
+
+    ====== ==== ====== ===========
+    Offset Size Type   Description
+    ====== ==== ====== ===========
+    0      1    u8     M/E Index
+    1      1    u8     Stinger mediaplayer index
+    2      1    bool   Source key is premultiplied
+    3      1    ?      padding
+    4      2    u16    Key clip, [0-1000]
+    6      2    u16    Key gain, [0-1000]
+    8      1    bool   Invert key
+    9      1    ?      padding
+    10     2    u16    Preroll frames
+    12     2    u16    Clip duration in frames
+    14     2    u16    Trigger point frame
+    16     2    u16    Mix rate
+    18     2    ?      padding
+    ====== ==== ====== ===========
+
+    After parsing:
+
+    :ivar index: M/E Index
+    :ivar mediaplayer: Stinger mediaplayer index
+    :ivar key_premultiplied: Source key is premultiplied
+    :ivar key_clip: Key clip, [0-1000]
+    :ivar key_gain: Key gain, [0-1000]
+    :ivar key_invert: Invert key
+    :ivar preroll: Preroll frames
+    :ivar duration: Clip duration in frames
+    :ivar triggerpoint: Trigger point frame
+    :ivar rate: Mix rate
+    """
+
+    CODE = "TDvP"
+    STRUCT = struct.Struct('>BB?x HH ?xH HH H2x')
+
+    def __init__(self, raw: bytes):
+        """
+        :param raw: Bytes containing the field contents
+        """
+        self.raw = raw
+        field = self.STRUCT.unpack(raw)
+        self.index = field[0]
+        self.mediaplayer = field[1]
+        self.key_premultiplied = field[2]
+        self.key_clip = field[3]
+        self.key_gain = field[4]
+        self.key_invert = field[5]
+        self.preroll = field[6]
+        self.duration = field[7]
+        self.triggerpoint = field[8]
+        self.rate = field[9]
+
+    @classmethod
+    def create(cls, mediaplayer: int, key_premultiplied: bool, key_clip: int, key_gain: int, key_invert: bool, preroll: int, duration: int, triggerpoint: int, rate: int, index: int = 0) -> Self:
+        """
+        :param index: M/E Index, defaults to 0
+        :param mediaplayer: Stinger mediaplayer index
+        :param key_premultiplied: Source key is premultiplied
+        :param key_clip: Key clip, [0-1000]
+        :param key_gain: Key gain, [0-1000]
+        :param key_invert: Invert key
+        :param preroll: Preroll frames
+        :param duration: Clip duration in frames
+        :param triggerpoint: Trigger point frame
+        :param rate: Mix rate
+        :return: Instance of TransitionStingerField with the data applied
+        """
+        raw = cls.STRUCT.pack(mediaplayer, key_premultiplied, key_clip, key_gain, key_invert, preroll, duration,
+            triggerpoint, rate, index)
+        return cls(raw)
+
+    def uncreate(self) -> tuple:
+        """Create arguments to feed into TransitionStingerField.create()"""
+        return self.mediaplayer, self.key_premultiplied, self.key_clip, self.key_gain, self.key_invert, self.preroll, self.duration, self.triggerpoint, self.rate, self.index
+
+    def __repr__(self):
+        return f"<transition-stinger index={self.index} mediaplayer={self.mediaplayer}>"
 
 
 class TransitionPreviewField(FieldBase):
@@ -575,41 +1353,47 @@ class TransitionPreviewField(FieldBase):
         return f"<transition-preview index={self.index} enabled={self.enabled}>"
 
 
-class MediaplayerFileInfoField(FieldBase):
+class TransitionDveField(FieldBase):
     """
-    Data from the `MPfe`. This is the metadata about a single frame slot in the mediaplayer
+    Data from the `TMxP` field. This defines the settings that are unique to the "DVE" transition
 
     ====== ==== ====== ===========
     Offset Size Type   Description
     ====== ==== ====== ===========
-    0      1    u8     Type
-    1      1    ?      padding
-    2      2    u16    Slot index
-    4      1    bool   Slot is used
-    5      16   bytes  The MD5 hash of the file in the slot
-    21     2    ?      padding
-    23     1    u8     Name of the slot, first byte is the number of characters
+    0      1    u8     M/E Index
+    1      1    u8     Rate in frames
+    2      1    ?      padding
+    3      1    u8     DVE style
+    4      2    u16    Fill source index
+    6      2    u16    Key source index
+    8      1    bool   Enable key
+    9      1    bool   Key is premultiplied
+    10     2    u16    Key clip, [0-1000]
+    12     2    u16    Key gain, [0-1000]
+    14     1    bool   Invert key
+    15     1    bool   Reverse
+    16     1    bool   Flip flop
+    17     3    ?      padding
     ====== ==== ====== ===========
-
-    The `Type` is an enum of these values:
-
-    === ====
-    Key Type
-    === ====
-    0   Still
-    === ====
 
     After parsing:
 
-    :ivar type: Type
-    :ivar index: Slot index
-    :ivar is_used: Slot is used
-    :ivar hash: The MD5 hash of the file in the slot
-    :ivar name_len: Name of the slot, first byte is the number of characters
+    :ivar index: M/E Index
+    :ivar rate: Rate in frames
+    :ivar style: DVE style
+    :ivar fill_source: Fill source index
+    :ivar key_source: Key source index
+    :ivar key_enable: Enable key
+    :ivar key_premultiplied: Key is premultiplied
+    :ivar key_clip: Key clip, [0-1000]
+    :ivar key_gain: Key gain, [0-1000]
+    :ivar key_invert: Invert key
+    :ivar reverse: Reverse
+    :ivar flipflop: Flip flop
     """
 
-    CODE = "MPfe"
-    STRUCT = struct.Struct('>BxH ?16s2xB')
+    CODE = "TDvP"
+    STRUCT = struct.Struct('>BBxB HH ??H H?? ?3x')
 
     def __init__(self, raw: bytes):
         """
@@ -617,32 +1401,46 @@ class MediaplayerFileInfoField(FieldBase):
         """
         self.raw = raw
         field = self.STRUCT.unpack(raw)
-        self.type = field[0]
-        self.index = field[1]
-        self.is_used = field[2]
-        self.hash = field[3]
-        self.name_len = field[4]
-        self.name = raw[self.STRUCT.size + self.name_len]
+        self.index = field[0]
+        self.rate = field[1]
+        self.style = field[2]
+        self.fill_source = field[3]
+        self.key_source = field[4]
+        self.key_enable = field[5]
+        self.key_premultiplied = field[6]
+        self.key_clip = field[7]
+        self.key_gain = field[8]
+        self.key_invert = field[9]
+        self.reverse = field[10]
+        self.flipflop = field[11]
 
     @classmethod
-    def create(cls, type: int, index: int, is_used: bool, hash: bytes, name_len: int) -> Self:
+    def create(cls, rate: int, style: int, fill_source: int, key_source: int, key_enable: bool, key_premultiplied: bool, key_clip: int, key_gain: int, key_invert: bool, reverse: bool, flipflop: bool, index: int = 0) -> Self:
         """
-        :param type: Type
-        :param index: Slot index
-        :param is_used: Slot is used
-        :param hash: The MD5 hash of the file in the slot
-        :param name_len: Name of the slot, first byte is the number of characters
-        :return: Instance of MediaplayerFileInfoField with the data applied
+        :param index: M/E Index, defaults to 0
+        :param rate: Rate in frames
+        :param style: DVE style
+        :param fill_source: Fill source index
+        :param key_source: Key source index
+        :param key_enable: Enable key
+        :param key_premultiplied: Key is premultiplied
+        :param key_clip: Key clip, [0-1000]
+        :param key_gain: Key gain, [0-1000]
+        :param key_invert: Invert key
+        :param reverse: Reverse
+        :param flipflop: Flip flop
+        :return: Instance of TransitionDveField with the data applied
         """
-        raw = cls.STRUCT.pack(type, index, is_used, hash, name_len)
+        raw = cls.STRUCT.pack(rate, style, fill_source, key_source, key_enable, key_premultiplied, key_clip, key_gain,
+            key_invert, reverse, flipflop, index)
         return cls(raw)
 
     def uncreate(self) -> tuple:
-        """Create arguments to feed into MediaplayerFileInfoField.create()"""
-        return self.type, self.index, self.is_used, self.hash, self.name_len
+        """Create arguments to feed into TransitionDveField.create()"""
+        return self.rate, self.style, self.fill_source, self.key_source, self.key_enable, self.key_premultiplied, self.key_clip, self.key_gain, self.key_invert, self.reverse, self.flipflop, self.index
 
     def __repr__(self):
-        return f"<mediaplayer-file-info type={self.type} index={self.index}>"
+        return f"<transition-dve index={self.index} rate={self.rate} fill_source={self.fill_source} key_source={self.key_source}>"
 
 
 class TransitionPositionField(FieldBase):
@@ -704,152 +1502,27 @@ class TransitionPositionField(FieldBase):
         return f"<transition-position index={self.index} in_transition={self.in_transition}>"
 
 
-class TopologyField(FieldBase):
+class TransitionDipField(FieldBase):
     """
-    Data from the `_top` field. This describes the internal video routing topology.
-
-    =================== ========= ======= ====== spec                Atem Mini 1M/E 4k TVS HD =================== =========
-    ======= ====== M/E units           1         1       1 upstream keyers     1         1       1 downstream keyers   1
-    2       2 dve                 1         1       1 stinger             0         1       0 supersources        0
-    0       0 multiview           0         1       1 rs485               0         1       1 =================== =========
-    ======= ======
+    Data from the `TMxP` field. This defines the settings that are unique to the "Dip" transition
 
     ====== ==== ====== ===========
     Offset Size Type   Description
     ====== ==== ====== ===========
-    0      1    u8     Number of Mix/Effect units
-    1      1    u8     Total number of sources
-    2      1    u8     Number of downstream keyers
-    3      1    u8     Number of AUX outputs
-    4      1    u8     Number of Mix Minus outputs
-    5      1    u8     Number of media players
-    6      1    u8     Number of multiview generators
-    7      1    u8     Number of RS485 connectors
-    8      1    u8     Number of possible hyperdeck connections
-    9      1    u8     Number of DVE units that are assignable
-    10     1    u8     Number of stinger generators
-    11     1    u8     Number of supersource generators
-    12     1    bool   The multiviewer is routable
-    13     1    u8     Number of talkback channels
-    14     1    ?      unknown
-    15     1    ?      unknown
-    16     1    ?      unknown
-    17     1    ?      unknown
-    18     1    bool   Supports camera control
-    19     1    ?      unknown
-    20     1    ?      unknown
-    21     1    ?      unknown
-    22     1    bool   Use the new advanced chroma keyers
-    23     1    bool   The hardware has no fixed function outputs, only AUX busses
-    24     1    ?      unknown
-    25     1    ?      unknown
-    26     1    ?      unknown
-    27     1    ?      unknown
+    0      1    u8     M/E Index
+    1      1    u8     Rate in frames
+    2      2    u16    Source index for the DIP source
     ====== ==== ====== ===========
 
     After parsing:
 
-    :ivar me_units: Number of Mix/Effect units
-    :ivar sources: Total number of sources
-    :ivar downstream_keyers: Number of downstream keyers
-    :ivar aux_busses: Number of AUX outputs
-    :ivar mixminus_outputs: Number of Mix Minus outputs
-    :ivar mediaplayers: Number of media players
-    :ivar multiviewers: Number of multiview generators
-    :ivar rs485: Number of RS485 connectors
-    :ivar hyperdecks: Number of possible hyperdeck connections
-    :ivar dve: Number of DVE units that are assignable
-    :ivar stingers: Number of stinger generators
-    :ivar supersources: Number of supersource generators
-    :ivar multiviewer_routable: The multiviewer is routable
-    :ivar talkback_channels: Number of talkback channels
-    :ivar camera_control: Supports camera control
-    :ivar advanced_chroma_keyers: Use the new advanced chroma keyers
-    :ivar only_configurable_outputs: The hardware has no fixed function outputs, only AUX busses
+    :ivar index: M/E Index
+    :ivar rate: Rate in frames
+    :ivar source: Source index for the DIP source
     """
 
-    CODE = "_top"
-    STRUCT = struct.Struct('>BBBB BBBB BBBB ?Bxx xx?x xx?? xxxx')
-
-    def __init__(self, raw: bytes):
-        """
-        :param raw: Bytes containing the field contents
-        """
-        self.raw = raw
-        field = self.STRUCT.unpack(raw)
-        self.me_units = field[0]
-        self.sources = field[1]
-        self.downstream_keyers = field[2]
-        self.aux_busses = field[3]
-        self.mixminus_outputs = field[4]
-        self.mediaplayers = field[5]
-        self.multiviewers = field[6]
-        self.rs485 = field[7]
-        self.hyperdecks = field[8]
-        self.dve = field[9]
-        self.stingers = field[10]
-        self.supersources = field[11]
-        self.multiviewer_routable = field[12]
-        self.talkback_channels = field[13]
-        self.camera_control = field[14]
-        self.advanced_chroma_keyers = field[15]
-        self.only_configurable_outputs = field[16]
-
-    @classmethod
-    def create(cls, me_units: int, sources: int, downstream_keyers: int, aux_busses: int, mixminus_outputs: int, mediaplayers: int, multiviewers: int, rs485: int, hyperdecks: int, dve: int, stingers: int, supersources: int, multiviewer_routable: bool, talkback_channels: int, camera_control: bool, advanced_chroma_keyers: bool, only_configurable_outputs: bool) -> Self:
-        """
-        :param me_units: Number of Mix/Effect units
-        :param sources: Total number of sources
-        :param downstream_keyers: Number of downstream keyers
-        :param aux_busses: Number of AUX outputs
-        :param mixminus_outputs: Number of Mix Minus outputs
-        :param mediaplayers: Number of media players
-        :param multiviewers: Number of multiview generators
-        :param rs485: Number of RS485 connectors
-        :param hyperdecks: Number of possible hyperdeck connections
-        :param dve: Number of DVE units that are assignable
-        :param stingers: Number of stinger generators
-        :param supersources: Number of supersource generators
-        :param multiviewer_routable: The multiviewer is routable
-        :param talkback_channels: Number of talkback channels
-        :param camera_control: Supports camera control
-        :param advanced_chroma_keyers: Use the new advanced chroma keyers
-        :param only_configurable_outputs: The hardware has no fixed function outputs, only AUX busses
-        :return: Instance of TopologyField with the data applied
-        """
-        raw = cls.STRUCT.pack(me_units, sources, downstream_keyers, aux_busses, mixminus_outputs, mediaplayers,
-            multiviewers, rs485, hyperdecks, dve, stingers, supersources, multiviewer_routable, talkback_channels,
-            camera_control, advanced_chroma_keyers, only_configurable_outputs)
-        return cls(raw)
-
-    def uncreate(self) -> tuple:
-        """Create arguments to feed into TopologyField.create()"""
-        return self.me_units, self.sources, self.downstream_keyers, self.aux_busses, self.mixminus_outputs, self.mediaplayers, self.multiviewers, self.rs485, self.hyperdecks, self.dve, self.stingers, self.supersources, self.multiviewer_routable, self.talkback_channels, self.camera_control, self.advanced_chroma_keyers, self.only_configurable_outputs
-
-    def __repr__(self):
-        return f"<topology me_units={self.me_units} sources={self.sources}>"
-
-
-class AuxOutputSourceField(FieldBase):
-    """
-    Data from the `AuxS`. The routing for the AUX outputs of the hardware.
-
-    ====== ==== ====== ===========
-    Offset Size Type   Description
-    ====== ==== ====== ===========
-    0      1    u8     Aux output index
-    1      1    ?      padding
-    2      2    u16    Source index
-    ====== ==== ====== ===========
-
-    After parsing:
-
-    :ivar index: Aux output index
-    :ivar source: Source index
-    """
-
-    CODE = "AuxS"
-    STRUCT = struct.Struct('>BxH')
+    CODE = "TDpP"
+    STRUCT = struct.Struct('>BBH')
 
     def __init__(self, raw: bytes):
         """
@@ -858,24 +1531,955 @@ class AuxOutputSourceField(FieldBase):
         self.raw = raw
         field = self.STRUCT.unpack(raw)
         self.index = field[0]
-        self.source = field[1]
+        self.rate = field[1]
+        self.source = field[2]
 
     @classmethod
-    def create(cls, index: int, source: int) -> Self:
+    def create(cls, rate: int, source: int, index: int = 0) -> Self:
         """
-        :param index: Aux output index
-        :param source: Source index
-        :return: Instance of AuxOutputSourceField with the data applied
+        :param index: M/E Index, defaults to 0
+        :param rate: Rate in frames
+        :param source: Source index for the DIP source
+        :return: Instance of TransitionDipField with the data applied
         """
-        raw = cls.STRUCT.pack(index, source)
+        raw = cls.STRUCT.pack(rate, source, index)
         return cls(raw)
 
     def uncreate(self) -> tuple:
-        """Create arguments to feed into AuxOutputSourceField.create()"""
-        return self.index, self.source
+        """Create arguments to feed into TransitionDipField.create()"""
+        return self.rate, self.source, self.index
 
     def __repr__(self):
-        return f"<aux-output-source index={self.index} source={self.source}>"
+        return f"<transition-dip index={self.index} rate={self.rate} source={self.source}>"
+
+
+class DkeyStateField(FieldBase):
+    """
+    Data from the `DskS`. Shows the runtime state of the keyer.
+
+    ====== ==== ====== ===========
+    Offset Size Type   Description
+    ====== ==== ====== ===========
+    0      1    u8     Downstream keyer index
+    1      1    bool   On air
+    2      1    bool   Is transitioning
+    3      1    bool   Is autotransitioning
+    4      1    u8     Frames remaining in transition
+    5      3    ?      padding
+    ====== ==== ====== ===========
+
+    After parsing:
+
+    :ivar index: Downstream keyer index
+    :ivar on_air: On air
+    :ivar is_transitioning: Is transitioning
+    :ivar is_autotransitioning: Is autotransitioning
+    :ivar frames_remaining: Frames remaining in transition
+    """
+
+    CODE = "DskS"
+    STRUCT = struct.Struct('>B??? B3x')
+
+    def __init__(self, raw: bytes):
+        """
+        :param raw: Bytes containing the field contents
+        """
+        self.raw = raw
+        field = self.STRUCT.unpack(raw)
+        self.index = field[0]
+        self.on_air = field[1]
+        self.is_transitioning = field[2]
+        self.is_autotransitioning = field[3]
+        self.frames_remaining = field[4]
+
+    @classmethod
+    def create(cls, on_air: bool, is_transitioning: bool, is_autotransitioning: bool, frames_remaining: int, index: int = 0) -> Self:
+        """
+        :param index: Downstream keyer index, defaults to 0
+        :param on_air: On air
+        :param is_transitioning: Is transitioning
+        :param is_autotransitioning: Is autotransitioning
+        :param frames_remaining: Frames remaining in transition
+        :return: Instance of DkeyStateField with the data applied
+        """
+        raw = cls.STRUCT.pack(on_air, is_transitioning, is_autotransitioning, frames_remaining, index)
+        return cls(raw)
+
+    def uncreate(self) -> tuple:
+        """Create arguments to feed into DkeyStateField.create()"""
+        return self.on_air, self.is_transitioning, self.is_autotransitioning, self.frames_remaining, self.index
+
+    def __repr__(self):
+        return f"<dkey-state index={self.index} on_air={self.on_air} is_transitioning={self.is_transitioning} is_autotransitioning={self.is_autotransitioning} frames_remaining={self.frames_remaining}>"
+
+
+class DkeyPropertiesBaseField(FieldBase):
+    """
+    Data from the `DskB`. Downstream keyer base info.
+
+    ====== ==== ====== ===========
+    Offset Size Type   Description
+    ====== ==== ====== ===========
+    0      1    u8     Downstream keyer index
+    1      1    ?      padding
+    2      2    u16    Fill source index
+    4      2    u16    Key source index
+    6      2    ?      padding
+    ====== ==== ====== ===========
+
+    After parsing:
+
+    :ivar index: Downstream keyer index
+    :ivar fill_source: Fill source index
+    :ivar key_source: Key source index
+    """
+
+    CODE = "DskB"
+    STRUCT = struct.Struct('>BxH H2x')
+
+    def __init__(self, raw: bytes):
+        """
+        :param raw: Bytes containing the field contents
+        """
+        self.raw = raw
+        field = self.STRUCT.unpack(raw)
+        self.index = field[0]
+        self.fill_source = field[1]
+        self.key_source = field[2]
+
+    @classmethod
+    def create(cls, fill_source: int, key_source: int, index: int = 0) -> Self:
+        """
+        :param index: Downstream keyer index, defaults to 0
+        :param fill_source: Fill source index
+        :param key_source: Key source index
+        :return: Instance of DkeyPropertiesBaseField with the data applied
+        """
+        raw = cls.STRUCT.pack(fill_source, key_source, index)
+        return cls(raw)
+
+    def uncreate(self) -> tuple:
+        """Create arguments to feed into DkeyPropertiesBaseField.create()"""
+        return self.fill_source, self.key_source, self.index
+
+    def serialize(self) -> dict:
+        """Create dict with the contents of this field for DkeyPropertiesBaseField.restore()"""
+        return {
+            "index": self.index,
+            "fill_source": self.fill_source,
+            "key_source": self.key_source,
+        }
+
+    def instance_id(self) -> tuple:
+        """Generate a tuple that uniquely identifies this instance on the hardware"""
+        return (self.index, )
+
+    @classmethod
+    def restore(cls, data: dict, instance_override=None):
+        """Generate commands to restore the state for this DkeyPropertiesBaseField based on the supplied data."""
+        if instance_override is not None:
+            data["index"] = instance_override[0]
+        from pyatem.command import DkeySetFillCommand
+        from pyatem.command import DkeySetKeyCommand
+        return [
+            DkeySetFillCommand(index=data["index"], source=data["fill_source"]),
+            DkeySetKeyCommand(index=data["index"], source=data["key_source"]),
+        ]
+
+    def __repr__(self):
+        return f"<dkey-properties-base index={self.index} fill_source={self.fill_source} key_source={self.key_source}>"
+
+
+class DkeyPropertiesField(FieldBase):
+    """
+    Data from the `DskP`. Downstream keyer info.
+
+    ====== ==== ====== ===========
+    Offset Size Type   Description
+    ====== ==== ====== ===========
+    0      1    u8     Downstream keyer index
+    1      1    bool   padding
+    2      1    u8     Transition rate in frames
+    3      1    bool   Mask is pre-multiplied alpha
+    4      2    u16    Clip, [0-1000]
+    6      2    u16    Gain, [0-1000]
+    8      1    bool   Invert key
+    9      1    bool   Enable mask
+    10     2    i16    Mask top, [-9000-9000]
+    12     2    i16    Mask bottom, [-9000-9000]
+    14     2    i16    Mask left, [-9000-9000]
+    16     2    i16    Mask right, [-9000-9000]
+    18     2    ?      padding
+    ====== ==== ====== ===========
+
+    After parsing:
+
+    :ivar index: Downstream keyer index
+    :ivar tie: padding
+    :ivar rate: Transition rate in frames
+    :ivar premultiplied: Mask is pre-multiplied alpha
+    :ivar clip: Clip, [0-1000]
+    :ivar gain: Gain, [0-1000]
+    :ivar invert_key: Invert key
+    :ivar masked: Enable mask
+    :ivar top: Mask top, [-9000-9000]
+    :ivar bottom: Mask bottom, [-9000-9000]
+    :ivar left: Mask left, [-9000-9000]
+    :ivar right: Mask right, [-9000-9000]
+    """
+
+    CODE = "DskP"
+    STRUCT = struct.Struct('>B?B? HH ??h hh h2x')
+
+    def __init__(self, raw: bytes):
+        """
+        :param raw: Bytes containing the field contents
+        """
+        self.raw = raw
+        field = self.STRUCT.unpack(raw)
+        self.index = field[0]
+        self.tie = field[1]
+        self.rate = field[2]
+        self.premultiplied = field[3]
+        self.clip = field[4]
+        self.gain = field[5]
+        self.invert_key = field[6]
+        self.masked = field[7]
+        self.top = field[8]
+        self.bottom = field[9]
+        self.left = field[10]
+        self.right = field[11]
+
+    @classmethod
+    def create(cls, tie: bool, rate: int, premultiplied: bool, clip: int, gain: int, invert_key: bool, masked: bool, top: int, bottom: int, left: int, right: int, index: int = 0) -> Self:
+        """
+        :param index: Downstream keyer index, defaults to 0
+        :param tie: padding
+        :param rate: Transition rate in frames
+        :param premultiplied: Mask is pre-multiplied alpha
+        :param clip: Clip, [0-1000]
+        :param gain: Gain, [0-1000]
+        :param invert_key: Invert key
+        :param masked: Enable mask
+        :param top: Mask top, [-9000-9000]
+        :param bottom: Mask bottom, [-9000-9000]
+        :param left: Mask left, [-9000-9000]
+        :param right: Mask right, [-9000-9000]
+        :return: Instance of DkeyPropertiesField with the data applied
+        """
+        raw = cls.STRUCT.pack(tie, rate, premultiplied, clip, gain, invert_key, masked, top, bottom, left, right, index)
+        return cls(raw)
+
+    def uncreate(self) -> tuple:
+        """Create arguments to feed into DkeyPropertiesField.create()"""
+        return self.tie, self.rate, self.premultiplied, self.clip, self.gain, self.invert_key, self.masked, self.top, self.bottom, self.left, self.right, self.index
+
+    def serialize(self) -> dict:
+        """Create dict with the contents of this field for DkeyPropertiesField.restore()"""
+        return {
+            "index": self.index,
+            "tie": self.tie,
+            "rate": self.rate,
+            "premultiplied": self.premultiplied,
+            "clip": self.clip,
+            "gain": self.gain,
+            "invert_key": self.invert_key,
+            "masked": self.masked,
+            "top": self.top,
+            "bottom": self.bottom,
+            "left": self.left,
+            "right": self.right,
+        }
+
+    def instance_id(self) -> tuple:
+        """Generate a tuple that uniquely identifies this instance on the hardware"""
+        return (self.index, )
+
+    @classmethod
+    def restore(cls, data: dict, instance_override=None):
+        """Generate commands to restore the state for this DkeyPropertiesField based on the supplied data."""
+        if instance_override is not None:
+            data["index"] = instance_override[0]
+        from pyatem.command import DkeyTieCommand
+        from pyatem.command import DkeyRateCommand
+        from pyatem.command import DkeyGainCommand
+        from pyatem.command import DkeyMaskCommand
+        return [
+            DkeyTieCommand(index=data["index"], tie=data["tie"]),
+            DkeyRateCommand(index=data["index"], rate=data["rate"]),
+            DkeyGainCommand(index=data["index"], premultiplied=data["premultiplied"], clip=data["clip"], gain=data["gain"], invert=data["invert_key"]),
+            DkeyMaskCommand(index=data["index"], enabled=data["masked"], top=data["top"], bottom=data["bottom"], left=data["left"], right=data["right"]),
+        ]
+
+    def __repr__(self):
+        return f"<dkey-properties index={self.index} tie={self.tie} rate={self.rate} masked={self.masked}>"
+
+
+class FairlightSoloField(FieldBase):
+    """
+    Data from the `FAMS`, soloing channels to phones.
+
+    ====== ==== ====== ===========
+    Offset Size Type   Description
+    ====== ==== ====== ===========
+    0      1    bool   Master solo indicator, enabled when any soure is soloed
+    1      7    ?      unknown
+    8      2    u16    Soloed channel (main)
+    10     12   ?      unknown
+    22     1    u8     Split
+    23     1    u8     Soloed channel (subchannel)
+    ====== ==== ====== ===========
+
+    After parsing:
+
+    :ivar solo: Master solo indicator, enabled when any soure is soloed
+    :ivar channel: Soloed channel (main)
+    :ivar is_split_lr: Split
+    :ivar subchannel: Soloed channel (subchannel)
+    """
+
+    CODE = "FAMS"
+    STRUCT = struct.Struct('>?7x H12xBB')
+
+    def __init__(self, raw: bytes):
+        """
+        :param raw: Bytes containing the field contents
+        """
+        self.raw = raw
+        field = self.STRUCT.unpack(raw)
+        self.solo = field[0]
+        self.channel = field[1]
+        self.is_split_lr = field[2]
+        self.subchannel = field[3]
+
+
+    @classmethod
+    def create(cls, solo: bool, channel: int, is_split_lr: int, subchannel: int) -> Self:
+        """
+        :param solo: Master solo indicator, enabled when any soure is soloed
+        :param channel: Soloed channel (main)
+        :param is_split_lr: Split
+        :param subchannel: Soloed channel (subchannel)
+        :return: Instance of FairlightSoloField with the data applied
+        """
+        raw = cls.STRUCT.pack(solo, channel, is_split_lr, subchannel)
+        return cls(raw)
+
+    def uncreate(self) -> tuple:
+        """Create arguments to feed into FairlightSoloField.create()"""
+        return self.solo, self.channel, self.is_split_lr, self.subchannel
+
+    @property
+    def strip_id(self):
+        """Channel strip id"""
+        return f"{self.channel}.{self.subchannel if self.is_split_lr == 0xFF else 0}"
+
+    def __repr__(self):
+        return f"<fairlight-solo solo={self.solo}>"
+
+
+class AtemEqBandPropertiesField(FieldBase):
+    """
+    Data from the `AEBP` field. This encodes the EQ settings in the fairlight mixer. For every channel there will be 6 off
+    these fields sent, one for every band of the EQ. The "possible band filters" differentiates the first and last band
+    which have a different option list for the filter dropdown in the UI.
+
+    ====== ==== ====== ===========
+    Offset Size Type   Description
+    ====== ==== ====== ===========
+    0      2    u16    Audio source index
+    2      12   ?      unknown
+    14     1    u8     Split indicator
+    15     1    u8     Subchannel index
+    16     1    u8     Band index
+    17     1    bool   Band enabled
+    18     1    u8     Possible filters for this band
+    19     1    u8     Band filter
+    20     1    ?      padding
+    21     1    u8     Band frequency range
+    22     4    ?      padding
+    26     2    u16    Band frequency
+    28     4    i32    Band gain
+    32     2    u16    Band Q
+    ====== ==== ====== ===========
+
+    The `Band filter` is an enum of these values:
+
+    === ===========
+    Key Band filter
+    === ===========
+    1   Low shelf
+    2   Low pass
+    4   Bell
+    8   Notch
+    10  High pass
+    20  High shelf
+    === ===========
+
+    After parsing:
+
+    :ivar index: Audio source index
+    :ivar is_split: Split indicator
+    :ivar subchannel: Subchannel index
+    :ivar band_index: Band index
+    :ivar band_enabled: Band enabled
+    :ivar band_possible_filters: Possible filters for this band
+    :ivar band_filter: Band filter
+    :ivar band_freq_range: Band frequency range
+    :ivar band_frequency: Band frequency
+    :ivar band_gain: Band gain
+    :ivar band_q: Band Q
+    """
+
+    CODE = "AEBP"
+    STRUCT = struct.Struct('>H12xBB B?BB xB4xH i H')
+
+    BAND_FILTER_LOW_SHELF = 1
+    BAND_FILTER_LOW_PASS = 2
+    BAND_FILTER_BELL = 4
+    BAND_FILTER_NOTCH = 8
+    BAND_FILTER_HIGH_PASS = 10
+    BAND_FILTER_HIGH_SHELF = 20
+
+    def __init__(self, raw: bytes):
+        """
+        :param raw: Bytes containing the field contents
+        """
+        self.raw = raw
+        field = self.STRUCT.unpack(raw)
+        self.index = field[0]
+        self.is_split = field[1]
+        self.subchannel = field[2]
+        self.band_index = field[3]
+        self.band_enabled = field[4]
+        self.band_possible_filters = field[5]
+        self.can_lowshelf = field[5] & (1 << 0) != 0
+        self.can_lowpass = field[5] & (1 << 1) != 0
+        self.can_bell = field[5] & (1 << 2) != 0
+        self.can_notch = field[5] & (1 << 3) != 0
+        self.can_highpass = field[5] & (1 << 4) != 0
+        self.can_highshelf = field[5] & (1 << 5) != 0
+        self.band_filter = field[6]
+        self.band_freq_range = field[7]
+        self.band_frequency = field[8]
+        self.band_gain = field[9]
+        self.band_q = field[10]
+
+
+    @classmethod
+    def create(cls, index: int, is_split: int, subchannel: int, band_index: int, band_enabled: bool, band_possible_filters: int, band_filter: int, band_freq_range: int, band_frequency: int, band_gain: int, band_q: int) -> Self:
+        """
+        :param index: Audio source index
+        :param is_split: Split indicator
+        :param subchannel: Subchannel index
+        :param band_index: Band index
+        :param band_enabled: Band enabled
+        :param band_possible_filters: Possible filters for this band
+        :param band_filter: Band filter
+        :param band_freq_range: Band frequency range
+        :param band_frequency: Band frequency
+        :param band_gain: Band gain
+        :param band_q: Band Q
+        :return: Instance of AtemEqBandPropertiesField with the data applied
+        """
+        raw = cls.STRUCT.pack(index, is_split, subchannel, band_index, band_enabled, band_possible_filters, band_filter,
+            band_freq_range, band_frequency, band_gain, band_q)
+        return cls(raw)
+
+    def uncreate(self) -> tuple:
+        """Create arguments to feed into AtemEqBandPropertiesField.create()"""
+        return self.index, self.is_split, self.subchannel, self.band_index, self.band_enabled, self.band_possible_filters, self.band_filter, self.band_freq_range, self.band_frequency, self.band_gain, self.band_q
+
+    @property
+    def strip_id(self):
+        """Channel strip id"""
+        return f"{self.index}.{self.subchannel if self.is_split == 0xFF else 0}"
+
+    def __repr__(self):
+        return f"<atem-eq-band-properties index={self.index}>"
+
+
+class FairlightLimiterPropertiesField(FieldBase):
+    """
+    Data from the `AILP` field. This encodes the limiter settings in the fairlight mixer.
+
+    ====== ==== ====== ===========
+    Offset Size Type   Description
+    ====== ==== ====== ===========
+    0      2    u16    Audio source index
+    2      12   ?      unknown
+    14     1    u8     Split indicator
+    15     1    u8     Subchannel index
+    16     1    bool   Limiter enabled
+    17     3    ?      padding
+    20     4    float  Limiter threshold
+    24     4    float  Limiter attack time
+    28     4    i32    Limiter hold time
+    32     4    i32    Limiter release time
+    ====== ==== ====== ===========
+
+    After parsing:
+
+    :ivar index: Audio source index
+    :ivar is_split: Split indicator
+    :ivar subchannel: Subchannel index
+    :ivar enabled: Limiter enabled
+    :ivar threshold: Limiter threshold
+    :ivar attack: Limiter attack time
+    :ivar hold: Limiter hold time
+    :ivar release: Limiter release time
+    """
+
+    CODE = "AILP"
+    STRUCT = struct.Struct('>H12xBB ?3x f f i i')
+
+    def __init__(self, raw: bytes):
+        """
+        :param raw: Bytes containing the field contents
+        """
+        self.raw = raw
+        field = self.STRUCT.unpack(raw)
+        self.index = field[0]
+        self.is_split = field[1]
+        self.subchannel = field[2]
+        self.enabled = field[3]
+        self.threshold = field[4]
+        self.attack = field[5]
+        self.hold = field[6]
+        self.release = field[7]
+
+
+    @classmethod
+    def create(cls, index: int, is_split: int, subchannel: int, enabled: bool, threshold: float, attack: float, hold: int, release: int) -> Self:
+        """
+        :param index: Audio source index
+        :param is_split: Split indicator
+        :param subchannel: Subchannel index
+        :param enabled: Limiter enabled
+        :param threshold: Limiter threshold
+        :param attack: Limiter attack time
+        :param hold: Limiter hold time
+        :param release: Limiter release time
+        :return: Instance of FairlightLimiterPropertiesField with the data applied
+        """
+        raw = cls.STRUCT.pack(index, is_split, subchannel, enabled, threshold, attack, hold, release)
+        return cls(raw)
+
+    def uncreate(self) -> tuple:
+        """Create arguments to feed into FairlightLimiterPropertiesField.create()"""
+        return self.index, self.is_split, self.subchannel, self.enabled, self.threshold, self.attack, self.hold, self.release
+
+    @property
+    def strip_id(self):
+        """Channel strip id"""
+        return f"{self.index}.{self.subchannel if self.is_split == 0xFF else 0}"
+
+    def __repr__(self):
+        return f"<fairlight-limiter-properties index={self.index}>"
+
+
+class FairlightMasterPropertiesField(FieldBase):
+    """
+    Data from the `AMMO`. Settings for the master bus on fairlight audio units.
+
+    ====== ==== ====== ===========
+    Offset Size Type   Description
+    ====== ==== ====== ===========
+    0      1    ?      unknown
+    1      1    bool   Enable master EQ
+    2      4    ?      unknown
+    6      2    i16    EQ gain, [-2000-2000]
+    8      2    ?      unknown
+    10     2    u16    Dynamics make-up gain, [0-2000]
+    12     4    i32    Master volume, [-10000-1000]
+    16     1    bool   Audio follow video
+    17     3    ?      padding
+    ====== ==== ====== ===========
+
+    After parsing:
+
+    :ivar eq_enable: Enable master EQ
+    :ivar eq_gain: EQ gain, [-2000-2000]
+    :ivar dynamics_gain: Dynamics make-up gain, [0-2000]
+    :ivar volume: Master volume, [-10000-1000]
+    :ivar afv: Audio follow video
+    """
+
+    CODE = "FAMP"
+    STRUCT = struct.Struct('>x?4xh 2xH i ?3x')
+
+    def __init__(self, raw: bytes):
+        """
+        :param raw: Bytes containing the field contents
+        """
+        self.raw = raw
+        field = self.STRUCT.unpack(raw)
+        self.eq_enable = field[0]
+        self.eq_gain = field[1]
+        self.dynamics_gain = field[2]
+        self.volume = field[3]
+        self.afv = field[4]
+
+    @classmethod
+    def create(cls, eq_enable: bool, eq_gain: int, dynamics_gain: int, volume: int, afv: bool) -> Self:
+        """
+        :param eq_enable: Enable master EQ
+        :param eq_gain: EQ gain, [-2000-2000]
+        :param dynamics_gain: Dynamics make-up gain, [0-2000]
+        :param volume: Master volume, [-10000-1000]
+        :param afv: Audio follow video
+        :return: Instance of FairlightMasterPropertiesField with the data applied
+        """
+        raw = cls.STRUCT.pack(eq_enable, eq_gain, dynamics_gain, volume, afv)
+        return cls(raw)
+
+    def uncreate(self) -> tuple:
+        """Create arguments to feed into FairlightMasterPropertiesField.create()"""
+        return self.eq_enable, self.eq_gain, self.dynamics_gain, self.volume, self.afv
+
+    def __repr__(self):
+        return f"<fairlight-master-properties dynamics_gain={self.dynamics_gain} volume={self.volume}>"
+
+
+class FairlightStripDeleteField(FieldBase):
+    """
+    Data from the `FASD`. Fairlight strip delete, received only when changing the source routing in fairlight to remove
+    channels that have changed.
+
+    ====== ==== ====== ===========
+    Offset Size Type   Description
+    ====== ==== ====== ===========
+    0      2    u16    Audio source index
+    2      14   ?      unknown
+    ====== ==== ====== ===========
+
+    After parsing:
+
+    :ivar index: Audio source index
+    """
+
+    CODE = "FASD"
+    STRUCT = struct.Struct('>H14x')
+
+    def __init__(self, raw: bytes):
+        """
+        :param raw: Bytes containing the field contents
+        """
+        self.raw = raw
+        field = self.STRUCT.unpack(raw)
+        self.index = field[0]
+
+    @classmethod
+    def create(cls, index: int) -> Self:
+        """
+        :param index: Audio source index
+        :return: Instance of FairlightStripDeleteField with the data applied
+        """
+        raw = cls.STRUCT.pack(index)
+        return cls(raw)
+
+    def uncreate(self) -> tuple:
+        """Create arguments to feed into FairlightStripDeleteField.create()"""
+        return self.index,
+
+    def __repr__(self):
+        return f"<fairlight-strip-delete index={self.index}>"
+
+
+class FairlightHeadphonesField(FieldBase):
+    """
+    Data from the `FMHP`, phones output volume and mute
+
+    This doesn't get triggered when soloing channels.
+
+    ====== ==== ====== ===========
+    Offset Size Type   Description
+    ====== ==== ====== ===========
+    0      4    i32    Volume in 0.01dB increments, [-60000-6000]
+    5      4    ?      unknown
+    8      1    bool   Muted (0) / Unmuted (1)
+    9      1    u8     Last soloed channel (just the main part)
+    10     22   ?      unknown
+    ====== ==== ====== ===========
+
+    After parsing:
+
+    :ivar volume: Volume in 0.01dB increments, [-60000-6000]
+    :ivar unmuted: Muted (0) / Unmuted (1)
+    :ivar last_solo: Last soloed channel (just the main part)
+    """
+
+    CODE = "FMHP"
+    STRUCT = struct.Struct('>i 4x ?B22x')
+
+    def __init__(self, raw: bytes):
+        """
+        :param raw: Bytes containing the field contents
+        """
+        self.raw = raw
+        field = self.STRUCT.unpack(raw)
+        self.volume = field[0]
+        self.unmuted = field[1]
+        self.last_solo = field[2]
+
+    @classmethod
+    def create(cls, volume: int, unmuted: bool, last_solo: int) -> Self:
+        """
+        :param volume: Volume in 0.01dB increments, [-60000-6000]
+        :param unmuted: Muted (0) / Unmuted (1)
+        :param last_solo: Last soloed channel (just the main part)
+        :return: Instance of FairlightHeadphonesField with the data applied
+        """
+        raw = cls.STRUCT.pack(volume, unmuted, last_solo)
+        return cls(raw)
+
+    def uncreate(self) -> tuple:
+        """Create arguments to feed into FairlightHeadphonesField.create()"""
+        return self.volume, self.unmuted, self.last_solo
+
+    def __repr__(self):
+        return f"<fairlight-headphones volume={self.volume}>"
+
+
+class FairlightTallyField(FieldBase):
+    """
+    Data from the `FMTl`. Encodes the state of tally lights on the audio mixer
+
+    ====== ==== ====== ===========
+    Offset Size Type   Description
+    ====== ==== ====== ===========
+    0      2    u16    Total number of tally lights
+    2      6    ?      unknown
+    ====== ==== ====== ===========
+
+    Followed by this repeated block:
+
+    ====== ==== ====== ===========
+    Offset Size Type   Description
+    ====== ==== ====== ===========
+    0      7    ?      unknown
+    7      1    u8     Subchannel index
+    8      2    u16    Source index
+    10     1    bool   On air
+    ====== ==== ====== ===========
+
+    After parsing:
+
+    :ivar num: Total number of tally lights
+    """
+
+    CODE = "FMTl"
+    STRUCT = struct.Struct('>H6x')
+    REPEATED = struct.Struct('>7xB H?')
+
+    def __init__(self, raw: bytes):
+        """
+        :param raw: Bytes containing the field contents
+        """
+        self.raw = raw
+        field = self.STRUCT.unpack_from(raw, 0)
+        self.num = field[0]
+        self.tally = {}
+        for i in range(self.num):
+            rf = self.REPEATED.unpack_from(raw, self.STRUCT.size + (i * self.REPEATED.size))
+            key = f"{rf[1]}.{rf[0]}"
+            self.tally[key] = rf[2]
+
+    @classmethod
+    def create(cls, num: int) -> Self:
+        """
+        :param num: Total number of tally lights
+        :return: Instance of FairlightTallyField with the data applied
+        """
+        raw = cls.STRUCT.pack(num)
+        return cls(raw)
+
+    def uncreate(self) -> tuple:
+        """Create arguments to feed into FairlightTallyField.create()"""
+        return self.num,
+
+    def __repr__(self):
+        return f"<fairlight-tally num={self.num}>"
+
+
+class FairlightStripPropertiesField(FieldBase):
+    """
+    Data from the `FASP`. Settings for a channel strip on fairlight audio units.
+
+    ====== ==== ====== ===========
+    Offset Size Type   Description
+    ====== ==== ====== ===========
+    0      2    u16    Audio source index
+    2      12   ?      unknown
+    14     1    u8     Split indicator? [01 for normal, FF for split]
+    15     1    u8     Subchannel index
+    16     2    ?      padding
+    18     1    u8     Delay in frames
+    19     3    ?      padding
+    22     2    i16    Gain, [-10000-600]
+    24     5    ?      unknown
+    29     1    bool   Enable EQ
+    30     4    ?      unknown
+    34     2    i16    EQ Gain
+    36     2    ?      padding
+    38     2    u16    Dynamics gain
+    40     2    i16    Pan, [-10000-10000]
+    42     4    ?      padding
+    46     2    i16    Volume fader, [-10000-1000]
+    48     1    ?      padding
+    49     1    u8     AFV bitfield
+    50     2    ?      padding
+    ====== ==== ====== ===========
+
+    After parsing:
+
+    :ivar index: Audio source index
+    :ivar is_split: Split indicator? [01 for normal, FF for split]
+    :ivar subchannel: Subchannel index
+    :ivar delay: Delay in frames
+    :ivar gain: Gain, [-10000-600]
+    :ivar eq_enable: Enable EQ
+    :ivar eq_gain: EQ Gain
+    :ivar dynamics_gain: Dynamics gain
+    :ivar pan: Pan, [-10000-10000]
+    :ivar volume: Volume fader, [-10000-1000]
+    :ivar state: AFV bitfield
+    """
+
+    CODE = "FASP"
+    STRUCT = struct.Struct('>H12xBB 2xB3xh 5x?4xh 2xH h4xh xB2x')
+
+    def __init__(self, raw: bytes):
+        """
+        :param raw: Bytes containing the field contents
+        """
+        self.raw = raw
+        field = self.STRUCT.unpack(raw)
+        self.index = field[0]
+        self.is_split = field[1]
+        self.subchannel = field[2]
+        self.delay = field[3]
+        self.gain = field[4]
+        self.eq_enable = field[5]
+        self.eq_gain = field[6]
+        self.dynamics_gain = field[7]
+        self.pan = field[8]
+        self.volume = field[9]
+        self.state = field[10]
+
+
+    @classmethod
+    def create(cls, index: int, is_split: int, subchannel: int, delay: int, gain: int, eq_enable: bool, eq_gain: int, dynamics_gain: int, pan: int, volume: int, state: int) -> Self:
+        """
+        :param index: Audio source index
+        :param is_split: Split indicator? [01 for normal, FF for split]
+        :param subchannel: Subchannel index
+        :param delay: Delay in frames
+        :param gain: Gain, [-10000-600]
+        :param eq_enable: Enable EQ
+        :param eq_gain: EQ Gain
+        :param dynamics_gain: Dynamics gain
+        :param pan: Pan, [-10000-10000]
+        :param volume: Volume fader, [-10000-1000]
+        :param state: AFV bitfield
+        :return: Instance of FairlightStripPropertiesField with the data applied
+        """
+        raw = cls.STRUCT.pack(index, is_split, subchannel, delay, gain, eq_enable, eq_gain, dynamics_gain, pan, volume,
+            state)
+        return cls(raw)
+
+    def uncreate(self) -> tuple:
+        """Create arguments to feed into FairlightStripPropertiesField.create()"""
+        return self.index, self.is_split, self.subchannel, self.delay, self.gain, self.eq_enable, self.eq_gain, self.dynamics_gain, self.pan, self.volume, self.state
+
+    @property
+    def strip_id(self):
+        """Channel strip id"""
+        return f"{self.index}.{self.subchannel if self.is_split == 0xFF else 0}"
+
+    def __repr__(self):
+        return f"<fairlight-strip-properties index={self.index}>"
+
+
+class FairlightAudioInputField(FieldBase):
+    """
+    Data from the `FAIP`. Describes the inputs to the fairlight mixer.
+
+    ====== ==== ====== ===========
+    Offset Size Type   Description
+    ====== ==== ====== ===========
+    0      2    u16    Audio source index
+    2      1    u8     Input type
+    3      2    ?      padding
+    5      1    u8     Index in group
+    6      4    ?      unknown
+    10     1    u8     Changes when stereo is split into dual mono
+    11     1    ?      padding
+    12     1    u8     Analog audio input level
+    ====== ==== ====== ===========
+
+    The `Input type` is an enum of these values:
+
+    === ==========
+    Key Input type
+    === ==========
+    0   External video input
+    1   Media player audio
+    2   External audio input
+    === ==========
+
+    The `Analog audio input level` is an enum of these values:
+
+    === ========================
+    Key Analog audio input level
+    === ========================
+    1   Mic level
+    2   Line level
+    === ========================
+
+    After parsing:
+
+    :ivar index: Audio source index
+    :ivar type: Input type
+    :ivar number: Index in group
+    :ivar split: Changes when stereo is split into dual mono
+    :ivar level: Analog audio input level
+    """
+
+    CODE = "FAIP"
+    STRUCT = struct.Struct('>HB2xB4xBx B')
+
+    def __init__(self, raw: bytes):
+        """
+        :param raw: Bytes containing the field contents
+        """
+        self.raw = raw
+        field = self.STRUCT.unpack(raw)
+        self.index = field[0]
+        self.type = field[1]
+        self.number = field[2]
+        self.split = field[3]
+        self.level = field[4]
+
+    @classmethod
+    def create(cls, index: int, type: int, number: int, split: int, level: int) -> Self:
+        """
+        :param index: Audio source index
+        :param type: Input type
+        :param number: Index in group
+        :param split: Changes when stereo is split into dual mono
+        :param level: Analog audio input level
+        :return: Instance of FairlightAudioInputField with the data applied
+        """
+        raw = cls.STRUCT.pack(index, type, number, split, level)
+        return cls(raw)
+
+    def uncreate(self) -> tuple:
+        """Create arguments to feed into FairlightAudioInputField.create()"""
+        return self.index, self.type, self.number, self.split, self.level
+
+    def __repr__(self):
+        return f"<fairlight-audio-input index={self.index}>"
 
 
 class MediaplayerSlotsField(FieldBase):
@@ -1134,7 +2738,7 @@ class VideoModeCapabilityField(FieldBase):
         :param raw: Bytes containing the field contents
         """
         self.raw = raw
-        field = self.STRUCT.unpack(raw)
+        field = self.STRUCT.unpack_from(raw, 0)
         self.count = field[0]
         self.modes = []
         for i in range(self.count):

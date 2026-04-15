@@ -143,6 +143,16 @@ class MicroConverterSdiHdmi6G(WValueProtoConverter):
         Field('aes', (0x0024, 4), int, "Audio", "AES/EBU", mapping='dB'),
     ]
 
+class Encoder(WValueProtoConverter):
+    PRODUCT = 0xBDD6
+    NAME = "H264 encoder"
+    HAS_NAME = True
+    NEEDS_POWER = False
+    LUT_SIZE = 33
+
+    FIELDS = [
+    ]
+
 
 class MicroConverterSdiHdmi(WValueProtoConverter):
     PRODUCT = 0xBDC5
