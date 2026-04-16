@@ -66,6 +66,25 @@ class TestTopologyField(TestCase):
         self.assertEqual(False, field.only_configurable_outputs, msg="TopologyField.only_configurable_outputs")
 
 
+from .fields import KeyPropertiesBaseField
+
+class TestKeyPropertiesBaseField(TestCase):
+    def test_key1(self):
+        raw = b'\x00\x00\x00\x01\x01\x00\x0b\xc2\x0b\xc3\x00c#(\xdc\xd8\xc1\x80>\x80'
+        field = KeyPropertiesBaseField(raw)
+        self.assertEqual(0, field.index, msg="KeyPropertiesBaseField.index")
+        self.assertEqual(0, field.keyer, msg="KeyPropertiesBaseField.keyer")
+        self.assertEqual(True, field.enabled, msg="KeyPropertiesBaseField.enabled")
+        self.assertEqual(3010, field.fill_source, msg="KeyPropertiesBaseField.fill_source")
+        self.assertEqual(3011, field.key_source, msg="KeyPropertiesBaseField.key_source")
+        self.assertEqual(False, field.fly_enabled, msg="KeyPropertiesBaseField.fly_enabled")
+        self.assertEqual(False, field.mask_enabled, msg="KeyPropertiesBaseField.mask_enabled")
+        self.assertEqual(9000, field.mask_top, msg="KeyPropertiesBaseField.mask_top")
+        self.assertEqual(-9000, field.mask_bottom, msg="KeyPropertiesBaseField.mask_bottom")
+        self.assertEqual(-16000, field.mask_left, msg="KeyPropertiesBaseField.mask_left")
+        self.assertEqual(16000, field.mask_right, msg="KeyPropertiesBaseField.mask_right")
+
+
 from .fields import FairlightSoloField
 
 class TestFairlightSoloField(TestCase):

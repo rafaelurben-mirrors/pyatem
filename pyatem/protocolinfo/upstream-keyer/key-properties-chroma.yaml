@@ -1,0 +1,73 @@
+name: key-properties-chroma
+code: KACk
+description: |
+  Data from the `KACk` field. This contains the data about the settings in the upstream advanced chroma keyer.
+type: field
+fields:
+  - offset: 0
+    size: 1
+    type: u8
+    name: index
+    description: M/E Index
+    repr: full
+  - offset: 1
+    size: 1
+    type: u8
+    name: keyer
+    description: Upstream key index
+    repr: full
+  - offset: 2
+    size: 2
+    type: u16
+    name: foreground
+    description: Foreground
+  - offset: 4
+    size: 2
+    type: u16
+    name: background
+    description: Background
+  - offset: 6
+    size: 2
+    type: u16
+    name: key_edge
+    description: Key edge
+  - offset: 8
+    size: 2
+    type: u16
+    name: spill_suppress
+    description: Spill supress
+  - offset: 10
+    size: 2
+    type: u16
+    name: flare_suppress
+    description: Flare suppress
+  - offset: 12
+    size: 2
+    type: i16
+    name: brightness
+    description: Brightness
+  - offset: 14
+    size: 2
+    type: i16
+    name: contrast
+    description: Contrast
+  - offset: 16
+    size: 2
+    type: u16
+    name: saturation
+    description: Saturation
+  - offset: 18
+    size: 2
+    type: i16
+    name: red
+    description: Red gain
+  - offset: 20
+    size: 2
+    type: i16
+    name: green
+    description: Green gain
+  - offset: 22
+    size: 2
+    type: i16
+    name: blue
+    description: Blue gain

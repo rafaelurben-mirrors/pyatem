@@ -1553,6 +1553,557 @@ class TransitionDipField(FieldBase):
         return f"<transition-dip index={self.index} rate={self.rate} source={self.source}>"
 
 
+class KeyPropertiesLumaField(FieldBase):
+    """
+    Data from the `KeLm`. The upstream keyer luma-specific properties.
+
+    ====== ==== ====== ===========
+    Offset Size Type   Description
+    ====== ==== ====== ===========
+    0      1    u8     M/E Index
+    1      1    u8     Upstream key index
+    2      1    bool   Fill source is premultiplied alpha for key
+    3      1    ?      padding
+    4      2    u16    Clip
+    6      2    u16    Gain
+    8      1    bool   Invert key
+    9      3    ?      padding
+    ====== ==== ====== ===========
+
+    After parsing:
+
+    :ivar index: M/E Index
+    :ivar keyer: Upstream key index
+    :ivar premultiplied: Fill source is premultiplied alpha for key
+    :ivar clip: Clip
+    :ivar gain: Gain
+    :ivar key_inverted: Invert key
+    """
+
+    CODE = "KeLm"
+    STRUCT = struct.Struct('>BB?x HH ?3x')
+
+    def __init__(self, raw: bytes):
+        """
+        :param raw: Bytes containing the field contents
+        """
+        self.raw = raw
+        field = self.STRUCT.unpack(raw)
+        self.index = field[0]
+        self.keyer = field[1]
+        self.premultiplied = field[2]
+        self.clip = field[3]
+        self.gain = field[4]
+        self.key_inverted = field[5]
+
+    @classmethod
+    def create(cls, index: int, keyer: int, premultiplied: bool, clip: int, gain: int, key_inverted: bool) -> Self:
+        """
+        :param index: M/E Index
+        :param keyer: Upstream key index
+        :param premultiplied: Fill source is premultiplied alpha for key
+        :param clip: Clip
+        :param gain: Gain
+        :param key_inverted: Invert key
+        :return: Instance of KeyPropertiesLumaField with the data applied
+        """
+        raw = cls.STRUCT.pack(index, keyer, premultiplied, clip, gain, key_inverted)
+        return cls(raw)
+
+    def uncreate(self) -> tuple:
+        """Create arguments to feed into KeyPropertiesLumaField.create()"""
+        return self.index, self.keyer, self.premultiplied, self.clip, self.gain, self.key_inverted
+
+    def __repr__(self):
+        return f"<key-properties-luma index={self.index} keyer={self.keyer}>"
+
+
+class KeyPropertiesAdvancedChromaColorpickerField(FieldBase):
+    """
+    Data from the `KACC` field. This contains the data about the color picker in the upstream advanced chroma keyer.
+
+    ====== ==== ====== ===========
+    Offset Size Type   Description
+    ====== ==== ====== ===========
+    0      1    u8     M/E Index
+    1      1    u8     Upstream key index
+    2      1    bool   Enable cursor
+    3      1    bool   Enable preview
+    4      2    i16    Color picker X position
+    6      2    i16    Color picker Y position
+    8      2    u16    Color picker averaging size
+    10     2    u16    Raw luma value
+    12     2    u16    Raw chroma blue
+    14     2    u16    Raw chroma red
+    ====== ==== ====== ===========
+
+    After parsing:
+
+    :ivar index: M/E Index
+    :ivar keyer: Upstream key index
+    :ivar cursor: Enable cursor
+    :ivar preview: Enable preview
+    :ivar x: Color picker X position
+    :ivar y: Color picker Y position
+    :ivar size: Color picker averaging size
+    :ivar raw_y: Raw luma value
+    :ivar raw_cb: Raw chroma blue
+    :ivar raw_cr: Raw chroma red
+    """
+
+    CODE = "KACC"
+    STRUCT = struct.Struct('>BB?? hh HH HH')
+
+    def __init__(self, raw: bytes):
+        """
+        :param raw: Bytes containing the field contents
+        """
+        self.raw = raw
+        field = self.STRUCT.unpack(raw)
+        self.index = field[0]
+        self.keyer = field[1]
+        self.cursor = field[2]
+        self.preview = field[3]
+        self.x = field[4]
+        self.y = field[5]
+        self.size = field[6]
+        self.raw_y = field[7]
+        self.raw_cb = field[8]
+        self.raw_cr = field[9]
+
+
+    @classmethod
+    def create(cls, index: int, keyer: int, cursor: bool, preview: bool, x: int, y: int, size: int, raw_y: int, raw_cb: int, raw_cr: int) -> Self:
+        """
+        :param index: M/E Index
+        :param keyer: Upstream key index
+        :param cursor: Enable cursor
+        :param preview: Enable preview
+        :param x: Color picker X position
+        :param y: Color picker Y position
+        :param size: Color picker averaging size
+        :param raw_y: Raw luma value
+        :param raw_cb: Raw chroma blue
+        :param raw_cr: Raw chroma red
+        :return: Instance of KeyPropertiesAdvancedChromaColorpickerField with the data applied
+        """
+        raw = cls.STRUCT.pack(index, keyer, cursor, preview, x, y, size, raw_y, raw_cb, raw_cr)
+        return cls(raw)
+
+    def uncreate(self) -> tuple:
+        """Create arguments to feed into KeyPropertiesAdvancedChromaColorpickerField.create()"""
+        return self.index, self.keyer, self.cursor, self.preview, self.x, self.y, self.size, self.raw_y, self.raw_cb, self.raw_cr
+
+    def get_rgb(self):
+        """Get the color as RGB tuple (0.0-1.0)"""
+        r = self.Y + (self.Cr * 1.5748)
+        g = self.Y + (self.Cb * -0.1873) + (self.Cr * -0.4681)
+        b = self.Y + (self.Cb * 1.8556)
+        r = max(0, min(1, r))
+        g = max(0, min(1, g))
+        b = max(0, min(1, b))
+        return r, g, b
+
+    @property
+    def Y(self):
+        """Color picker color, luma"""
+        return (self.raw_y - 625) / 8544
+
+    @property
+    def Cb(self):
+        """Color picker color, chroma blue"""
+        return (self.raw_cb - 5000) / 5000
+
+    @property
+    def Cr(self):
+        """Color picker color, chroma red"""
+        return (self.raw_cr - 5000) / 5000
+
+    def __repr__(self):
+        return f"<key-properties-advanced-chroma-colorpicker index={self.index} keyer={self.keyer}>"
+
+
+class KeyPropertiesChromaField(FieldBase):
+    """
+    Data from the `KACk` field. This contains the data about the settings in the upstream advanced chroma keyer.
+
+    ====== ==== ====== ===========
+    Offset Size Type   Description
+    ====== ==== ====== ===========
+    0      1    u8     M/E Index
+    1      1    u8     Upstream key index
+    2      2    u16    Foreground
+    4      2    u16    Background
+    6      2    u16    Key edge
+    8      2    u16    Spill supress
+    10     2    u16    Flare suppress
+    12     2    i16    Brightness
+    14     2    i16    Contrast
+    16     2    u16    Saturation
+    18     2    i16    Red gain
+    20     2    i16    Green gain
+    22     2    i16    Blue gain
+    ====== ==== ====== ===========
+
+    After parsing:
+
+    :ivar index: M/E Index
+    :ivar keyer: Upstream key index
+    :ivar foreground: Foreground
+    :ivar background: Background
+    :ivar key_edge: Key edge
+    :ivar spill_suppress: Spill supress
+    :ivar flare_suppress: Flare suppress
+    :ivar brightness: Brightness
+    :ivar contrast: Contrast
+    :ivar saturation: Saturation
+    :ivar red: Red gain
+    :ivar green: Green gain
+    :ivar blue: Blue gain
+    """
+
+    CODE = "KACk"
+    STRUCT = struct.Struct('>BBH HH HH hh Hh hh')
+
+    def __init__(self, raw: bytes):
+        """
+        :param raw: Bytes containing the field contents
+        """
+        self.raw = raw
+        field = self.STRUCT.unpack(raw)
+        self.index = field[0]
+        self.keyer = field[1]
+        self.foreground = field[2]
+        self.background = field[3]
+        self.key_edge = field[4]
+        self.spill_suppress = field[5]
+        self.flare_suppress = field[6]
+        self.brightness = field[7]
+        self.contrast = field[8]
+        self.saturation = field[9]
+        self.red = field[10]
+        self.green = field[11]
+        self.blue = field[12]
+
+    @classmethod
+    def create(cls, index: int, keyer: int, foreground: int, background: int, key_edge: int, spill_suppress: int, flare_suppress: int, brightness: int, contrast: int, saturation: int, red: int, green: int, blue: int) -> Self:
+        """
+        :param index: M/E Index
+        :param keyer: Upstream key index
+        :param foreground: Foreground
+        :param background: Background
+        :param key_edge: Key edge
+        :param spill_suppress: Spill supress
+        :param flare_suppress: Flare suppress
+        :param brightness: Brightness
+        :param contrast: Contrast
+        :param saturation: Saturation
+        :param red: Red gain
+        :param green: Green gain
+        :param blue: Blue gain
+        :return: Instance of KeyPropertiesChromaField with the data applied
+        """
+        raw = cls.STRUCT.pack(index, keyer, foreground, background, key_edge, spill_suppress, flare_suppress, brightness,
+            contrast, saturation, red, green, blue)
+        return cls(raw)
+
+    def uncreate(self) -> tuple:
+        """Create arguments to feed into KeyPropertiesChromaField.create()"""
+        return self.index, self.keyer, self.foreground, self.background, self.key_edge, self.spill_suppress, self.flare_suppress, self.brightness, self.contrast, self.saturation, self.red, self.green, self.blue
+
+    def __repr__(self):
+        return f"<key-properties-chroma index={self.index} keyer={self.keyer}>"
+
+
+class KeyPropertiesBaseField(FieldBase):
+    """
+    Data from the `KeBP`. The upstream keyer base properties.
+
+    ====== ==== ====== ===========
+    Offset Size Type   Description
+    ====== ==== ====== ===========
+    0      1    u8     M/E Index
+    1      1    u8     Upstream key index
+    2      1    u8     Keyer type
+    3      1    bool   Keyer enabled
+    4      1    ?      padding
+    5      1    bool   Enable flying key
+    6      2    u16    Fill source index
+    8      2    u16    Key source index
+    10     1    bool   Mask enabled
+    11     1    ?      padding
+    12     2    i16    Mask distance on top edge
+    14     2    i16    Mask distance on bottom edge
+    16     2    i16    Mask distance on left edge
+    18     2    i16    Mask distance on right edge
+    ====== ==== ====== ===========
+
+    The `Keyer type` is an enum of these values:
+
+    === ==========
+    Key Keyer type
+    === ==========
+    0   Luma key
+    1   Chroma key
+    2   Pattern key
+    3   DVE key
+    === ==========
+
+    After parsing:
+
+    :ivar index: M/E Index
+    :ivar keyer: Upstream key index
+    :ivar type: Keyer type
+    :ivar enabled: Keyer enabled
+    :ivar fly_enabled: Enable flying key
+    :ivar fill_source: Fill source index
+    :ivar key_source: Key source index
+    :ivar mask_enabled: Mask enabled
+    :ivar mask_top: Mask distance on top edge
+    :ivar mask_bottom: Mask distance on bottom edge
+    :ivar mask_left: Mask distance on left edge
+    :ivar mask_right: Mask distance on right edge
+    """
+
+    CODE = "KeBP"
+    STRUCT = struct.Struct('>BBB? x?H H?x hh hh')
+
+    TYPE_LUMA = 0
+    TYPE_CHROMA = 1
+    TYPE_PATTERN = 2
+    TYPE_DVE = 3
+
+    def __init__(self, raw: bytes):
+        """
+        :param raw: Bytes containing the field contents
+        """
+        self.raw = raw
+        field = self.STRUCT.unpack(raw)
+        self.index = field[0]
+        self.keyer = field[1]
+        self.type = field[2]
+        self.enabled = field[3]
+        self.fly_enabled = field[4]
+        self.fill_source = field[5]
+        self.key_source = field[6]
+        self.mask_enabled = field[7]
+        self.mask_top = field[8]
+        self.mask_bottom = field[9]
+        self.mask_left = field[10]
+        self.mask_right = field[11]
+
+    @classmethod
+    def create(cls, index: int, keyer: int, type: int, enabled: bool, fly_enabled: bool, fill_source: int, key_source: int, mask_enabled: bool, mask_top: int, mask_bottom: int, mask_left: int, mask_right: int) -> Self:
+        """
+        :param index: M/E Index
+        :param keyer: Upstream key index
+        :param type: Keyer type
+        :param enabled: Keyer enabled
+        :param fly_enabled: Enable flying key
+        :param fill_source: Fill source index
+        :param key_source: Key source index
+        :param mask_enabled: Mask enabled
+        :param mask_top: Mask distance on top edge
+        :param mask_bottom: Mask distance on bottom edge
+        :param mask_left: Mask distance on left edge
+        :param mask_right: Mask distance on right edge
+        :return: Instance of KeyPropertiesBaseField with the data applied
+        """
+        raw = cls.STRUCT.pack(index, keyer, type, enabled, fly_enabled, fill_source, key_source, mask_enabled, mask_top,
+            mask_bottom, mask_left, mask_right)
+        return cls(raw)
+
+    def uncreate(self) -> tuple:
+        """Create arguments to feed into KeyPropertiesBaseField.create()"""
+        return self.index, self.keyer, self.type, self.enabled, self.fly_enabled, self.fill_source, self.key_source, self.mask_enabled, self.mask_top, self.mask_bottom, self.mask_left, self.mask_right
+
+    def __repr__(self):
+        return f"<key-properties-base index={self.index} keyer={self.keyer} type={self.type}>"
+
+
+class KeyPropertiesDveField(FieldBase):
+    """
+    Data from the `KeDV`. The upstream keyer DVE-specific properties.
+
+    ====== ==== ====== ===========
+    Offset Size Type   Description
+    ====== ==== ====== ===========
+    0      1    u8     M/E index
+    1      1    u8     Upstream keyer index
+    2      2    ?      padding
+    4      4    i32    Width
+    8      4    i32    Height
+    12     4    i32    DVE X position
+    16     4    i32    DVE Y position
+    20     4    i32    DVE rotation
+    24     1    bool   Border enabled
+    25     1    bool   Shadow enabled
+    26     1    u8     Border bevel width
+    27     1    ?      padding
+    28     2    u16    Border width outside of DVE
+    30     2    u16    Border width inside of DVE
+    32     1    u8     Blurring radius for outer border
+    33     1    u8     Blurring radius for inner border
+    34     1    u8     Border bevel softness
+    35     1    u8     Border bevel position
+    36     1    u8     Border opacity
+    37     1    ?      padding
+    38     2    u16    Border color hue
+    40     2    u16    Border color saturation
+    42     2    u16    Border color luma
+    44     2    u16    Shadow light angle
+    46     1    u8     Shadow light altitude
+    47     1    bool   Mask enabled
+    48     2    i16    Mask top offset
+    50     2    i16    Mask bottom offset
+    52     2    i16    Mask left offset
+    54     2    i16    Mask right offset
+    56     1    u8     Flying key run rate
+    57     3    ?      padding
+    ====== ==== ====== ===========
+
+    After parsing:
+
+    :ivar index: M/E index
+    :ivar keyer: Upstream keyer index
+    :ivar size_x: Width
+    :ivar size_y: Height
+    :ivar pos_x: DVE X position
+    :ivar pos_y: DVE Y position
+    :ivar rotation: DVE rotation
+    :ivar border_enabled: Border enabled
+    :ivar shadow_enabled: Shadow enabled
+    :ivar border_bevel: Border bevel width
+    :ivar border_outer_width: Border width outside of DVE
+    :ivar border_inner_width: Border width inside of DVE
+    :ivar border_outer_softness: Blurring radius for outer border
+    :ivar border_inner_softness: Blurring radius for inner border
+    :ivar border_bevel_softness: Border bevel softness
+    :ivar border_bevel_position: Border bevel position
+    :ivar border_opacity: Border opacity
+    :ivar border_hue: Border color hue
+    :ivar border_saturation: Border color saturation
+    :ivar border_luma: Border color luma
+    :ivar light_angle: Shadow light angle
+    :ivar light_altitude: Shadow light altitude
+    :ivar mask_enabled: Mask enabled
+    :ivar mask_top: Mask top offset
+    :ivar mask_bottom: Mask bottom offset
+    :ivar mask_left: Mask left offset
+    :ivar mask_right: Mask right offset
+    :ivar rate: Flying key run rate
+    """
+
+    CODE = "KeDV"
+    STRUCT = struct.Struct('>BB2x i i i i i ??Bx HH BBBB BxH HH HB? hh hh B3x')
+
+    def __init__(self, raw: bytes):
+        """
+        :param raw: Bytes containing the field contents
+        """
+        self.raw = raw
+        field = self.STRUCT.unpack(raw)
+        self.index = field[0]
+        self.keyer = field[1]
+        self.size_x = field[2]
+        self.size_y = field[3]
+        self.pos_x = field[4]
+        self.pos_y = field[5]
+        self.rotation = field[6]
+        self.border_enabled = field[7]
+        self.shadow_enabled = field[8]
+        self.border_bevel = field[9]
+        self.border_outer_width = field[10]
+        self.border_inner_width = field[11]
+        self.border_outer_softness = field[12]
+        self.border_inner_softness = field[13]
+        self.border_bevel_softness = field[14]
+        self.border_bevel_position = field[15]
+        self.border_opacity = field[16]
+        self.border_hue = field[17]
+        self.border_saturation = field[18]
+        self.border_luma = field[19]
+        self.light_angle = field[20]
+        self.light_altitude = field[21]
+        self.mask_enabled = field[22]
+        self.mask_top = field[23]
+        self.mask_bottom = field[24]
+        self.mask_left = field[25]
+        self.mask_right = field[26]
+        self.rate = field[27]
+
+
+    @classmethod
+    def create(cls, index: int, keyer: int, size_x: int, size_y: int, pos_x: int, pos_y: int, rotation: int, border_enabled: bool, shadow_enabled: bool, border_bevel: int, border_outer_width: int, border_inner_width: int, border_outer_softness: int, border_inner_softness: int, border_bevel_softness: int, border_bevel_position: int, border_opacity: int, border_hue: int, border_saturation: int, border_luma: int, light_angle: int, light_altitude: int, mask_enabled: bool, mask_top: int, mask_bottom: int, mask_left: int, mask_right: int, rate: int) -> Self:
+        """
+        :param index: M/E index
+        :param keyer: Upstream keyer index
+        :param size_x: Width
+        :param size_y: Height
+        :param pos_x: DVE X position
+        :param pos_y: DVE Y position
+        :param rotation: DVE rotation
+        :param border_enabled: Border enabled
+        :param shadow_enabled: Shadow enabled
+        :param border_bevel: Border bevel width
+        :param border_outer_width: Border width outside of DVE
+        :param border_inner_width: Border width inside of DVE
+        :param border_outer_softness: Blurring radius for outer border
+        :param border_inner_softness: Blurring radius for inner border
+        :param border_bevel_softness: Border bevel softness
+        :param border_bevel_position: Border bevel position
+        :param border_opacity: Border opacity
+        :param border_hue: Border color hue
+        :param border_saturation: Border color saturation
+        :param border_luma: Border color luma
+        :param light_angle: Shadow light angle
+        :param light_altitude: Shadow light altitude
+        :param mask_enabled: Mask enabled
+        :param mask_top: Mask top offset
+        :param mask_bottom: Mask bottom offset
+        :param mask_left: Mask left offset
+        :param mask_right: Mask right offset
+        :param rate: Flying key run rate
+        :return: Instance of KeyPropertiesDveField with the data applied
+        """
+        raw = cls.STRUCT.pack(index, keyer, size_x, size_y, pos_x, pos_y, rotation, border_enabled, shadow_enabled,
+            border_bevel, border_outer_width, border_inner_width, border_outer_softness, border_inner_softness,
+            border_bevel_softness, border_bevel_position, border_opacity, border_hue, border_saturation, border_luma,
+            light_angle, light_altitude, mask_enabled, mask_top, mask_bottom, mask_left, mask_right, rate)
+        return cls(raw)
+
+    def uncreate(self) -> tuple:
+        """Create arguments to feed into KeyPropertiesDveField.create()"""
+        return self.index, self.keyer, self.size_x, self.size_y, self.pos_x, self.pos_y, self.rotation, self.border_enabled, self.shadow_enabled, self.border_bevel, self.border_outer_width, self.border_inner_width, self.border_outer_softness, self.border_inner_softness, self.border_bevel_softness, self.border_bevel_position, self.border_opacity, self.border_hue, self.border_saturation, self.border_luma, self.light_angle, self.light_altitude, self.mask_enabled, self.mask_top, self.mask_bottom, self.mask_left, self.mask_right, self.rate
+
+    def get_border_color_rgb(self):
+        """Get the border color as RGB tuple (0.0-1.0)"""
+        return colorsys.hls_to_rgb(self.border_hue / 360.0, self.border_luma, self.border_saturation)
+
+    @property
+    def mini_preset_key(self):
+        """Check if the current properties matches a preset button on an ATEM Mini"""
+        if self.index != 0:
+            return None
+        if self.keyer != 0 and self.keyer != 1:
+            return None
+
+        if self.size_x == 200 and self.size_y == 200 and self.rotation == 0 and self.border_enabled and not self.shadow_enabled and self.border_inner_width == 20 and self.border_opacity == 100 and self.light_angle == 360:
+            if self.pos_x == -12500 and self.pos_y == 7000:
+                return 'TOPLEFT'
+            elif self.pos_x == 12500 and self.pos_y == 7000:
+                return 'TOPRIGHT'
+            elif self.pos_x == -12500 and self.pos_y == -7000:
+                return 'BOTTOMLEFT'
+            elif self.pos_x == 12500 and self.pos_y == 7000:
+                return 'BOTTOMRIGHT'
+
+        return None
+
+    def __repr__(self):
+        return f"<key-properties-dve>"
+
+
 class DkeyStateField(FieldBase):
     """
     Data from the `DskS`. Shows the runtime state of the keyer.

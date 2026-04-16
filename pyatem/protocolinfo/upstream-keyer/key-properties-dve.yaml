@@ -1,0 +1,192 @@
+name: key-properties-dve
+code: KeDV
+description: |
+  Data from the `KeDV`. The upstream keyer DVE-specific properties.
+type: field
+fields:
+  - offset: 0
+    size: 1
+    type: u8
+    name: index
+    description: M/E index
+  - offset: 1
+    size: 1
+    type: u8
+    name: keyer
+    description: Upstream keyer index
+  - offset: 2
+    size: 2
+    type: '?'
+    description: padding
+  - offset: 4
+    size: 4
+    type: i32
+    name: size_x
+    description: Width
+  - offset: 8
+    size: 4
+    type: i32
+    name: size_y
+    description: Height
+  - offset: 12
+    size: 4
+    type: i32
+    name: pos_x
+    description: DVE X position
+  - offset: 16
+    size: 4
+    type: i32
+    name: pos_y
+    description: DVE Y position
+  - offset: 20
+    size: 4
+    type: i32
+    name: rotation
+    description: DVE rotation
+  - offset: 24
+    size: 1
+    type: bool
+    name: border_enabled
+    description: Border enabled
+  - offset: 25
+    size: 1
+    type: bool
+    name: shadow_enabled
+    description: Shadow enabled
+  - offset: 26
+    size: 1
+    type: u8
+    name: border_bevel
+    description: Border bevel width
+  - offset: 27
+    size: 1
+    type: '?'
+    description: padding
+  - offset: 28
+    size: 2
+    type: u16
+    name: border_outer_width
+    description: Border width outside of DVE
+  - offset: 30
+    size: 2
+    type: u16
+    name: border_inner_width
+    description: Border width inside of DVE
+  - offset: 32
+    size: 1
+    type: u8
+    name: border_outer_softness
+    description: Blurring radius for outer border
+  - offset: 33
+    size: 1
+    type: u8
+    name: border_inner_softness
+    description: Blurring radius for inner border
+  - offset: 34
+    size: 1
+    type: u8
+    name: border_bevel_softness
+    description: Border bevel softness
+  - offset: 35
+    size: 1
+    type: u8
+    name: border_bevel_position
+    description: Border bevel position
+  - offset: 36
+    size: 1
+    type: u8
+    name: border_opacity
+    description: Border opacity
+  - offset: 37
+    size: 1
+    type: '?'
+    description: padding
+  - offset: 38
+    size: 2
+    type: u16
+    name: border_hue
+    description: Border color hue
+  - offset: 40
+    size: 2
+    type: u16
+    name: border_saturation
+    description: Border color saturation
+  - offset: 42
+    size: 2
+    type: u16
+    name: border_luma
+    description: Border color luma
+  - offset: 44
+    size: 2
+    type: u16
+    name: light_angle
+    description: Shadow light angle
+  - offset: 46
+    size: 1
+    type: u8
+    name: light_altitude
+    description: Shadow light altitude
+  - offset: 47
+    size: 1
+    type: bool
+    name: mask_enabled
+    description: Mask enabled
+  - offset: 48
+    size: 2
+    type: i16
+    name: mask_top
+    description: Mask top offset
+  - offset: 50
+    size: 2
+    type: i16
+    name: mask_bottom
+    description: Mask bottom offset
+  - offset: 52
+    size: 2
+    type: i16
+    name: mask_left
+    description: Mask left offset
+  - offset: 54
+    size: 2
+    type: i16
+    name: mask_right
+    description: Mask right offset
+  - offset: 56
+    size: 1
+    type: u8
+    name: rate
+    description: Flying key run rate
+  - offset: 57
+    size: 3
+    type: '?'
+    description: padding
+
+calculated:
+  get_border_color_rgb:
+    type: code
+    access: method
+    description: Get the border color as RGB tuple (0.0-1.0)
+    code:
+      python: return colorsys.hls_to_rgb(self.border_hue / 360.0, self.border_luma, self.border_saturation)
+  mini_preset_key:
+    type: code
+    access: property
+    description: Check if the current properties matches a preset button on an ATEM Mini
+    code:
+      python: |
+        if self.index != 0:
+            return None
+        if self.keyer != 0 and self.keyer != 1:
+            return None
+
+        if self.size_x == 200 and self.size_y == 200 and self.rotation == 0 and self.border_enabled and not self.shadow_enabled and self.border_inner_width == 20 and self.border_opacity == 100 and self.light_angle == 360:
+            if self.pos_x == -12500 and self.pos_y == 7000:
+                return 'TOPLEFT'
+            elif self.pos_x == 12500 and self.pos_y == 7000:
+                return 'TOPRIGHT'
+            elif self.pos_x == -12500 and self.pos_y == -7000:
+                return 'BOTTOMLEFT'
+            elif self.pos_x == 12500 and self.pos_y == 7000:
+                return 'BOTTOMRIGHT'
+
+        return None

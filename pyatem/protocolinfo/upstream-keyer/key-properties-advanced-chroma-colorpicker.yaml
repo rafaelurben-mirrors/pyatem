@@ -1,0 +1,94 @@
+name: key-properties-advanced-chroma-colorpicker
+code: KACC
+description: |
+  Data from the `KACC` field. This contains the data about the color picker in the upstream advanced chroma keyer.
+type: field
+fields:
+  - offset: 0
+    size: 1
+    type: u8
+    name: index
+    description: M/E Index
+    repr: full
+  - offset: 1
+    size: 1
+    type: u8
+    name: keyer
+    description: Upstream key index
+    repr: full
+  - offset: 2
+    size: 1
+    type: bool
+    name: cursor
+    description: Enable cursor
+  - offset: 3
+    size: 1
+    type: bool
+    name: preview
+    description: Enable preview
+  - offset: 4
+    size: 2
+    type: i16
+    name: x
+    description: Color picker X position
+  - offset: 6
+    size: 2
+    type: i16
+    name: y
+    description: Color picker Y position
+  - offset: 8
+    size: 2
+    type: u16
+    name: size
+    description: Color picker averaging size
+  - offset: 10
+    size: 2
+    type: u16
+    name: raw_y
+    description: Raw luma value
+  - offset: 12
+    size: 2
+    type: u16
+    name: raw_cb
+    description: Raw chroma blue
+  - offset: 14
+    size: 2
+    type: u16
+    name: raw_cr
+    description: Raw chroma red
+
+calculated:
+  get_rgb:
+    type: code
+    access: method
+    description: Get the color as RGB tuple (0.0-1.0)
+    code:
+      python: |
+        r = self.Y + (self.Cr * 1.5748)
+        g = self.Y + (self.Cb * -0.1873) + (self.Cr * -0.4681)
+        b = self.Y + (self.Cb * 1.8556)
+        r = max(0, min(1, r))
+        g = max(0, min(1, g))
+        b = max(0, min(1, b))
+        return r, g, b
+
+  Y:
+    type: code
+    access: property
+    description: Color picker color, luma
+    code:
+      python: return (self.raw_y - 625) / 8544
+
+  Cb:
+    type: code
+    access: property
+    description: Color picker color, chroma blue
+    code:
+      python: return (self.raw_cb - 5000) / 5000
+
+  Cr:
+    type: code
+    access: property
+    description: Color picker color, chroma red
+    code:
+      python: return (self.raw_cr - 5000) / 5000

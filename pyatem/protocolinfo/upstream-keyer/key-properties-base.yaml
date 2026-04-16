@@ -1,0 +1,108 @@
+name: key-properties-base
+code: KeBP
+description: |
+  Data from the `KeBP`. The upstream keyer base properties.
+type: field
+fields:
+  - offset: 0
+    size: 1
+    type: u8
+    name: index
+    description: M/E Index
+    repr: full
+  - offset: 1
+    size: 1
+    type: u8
+    name: keyer
+    description: Upstream key index
+    repr: full
+  - offset: 2
+    size: 1
+    type: u8
+    name: type
+    description: Keyer type
+    repr: full
+    enum_const: name
+    enum:
+      0:
+        name: LUMA
+        description: Luma key
+      1:
+        name: CHROMA
+        description: Chroma key
+      2:
+        name: PATTERN
+        description: Pattern key
+      3:
+        name: DVE
+        description: DVE key
+  - offset: 3
+    size: 1
+    type: bool
+    name: enabled
+    description: Keyer enabled
+  - offset: 4
+    size: 1
+    type: "?"
+    description: padding
+  - offset: 5
+    size: 1
+    type: bool
+    name: fly_enabled
+    description: Enable flying key
+  - offset: 6
+    size: 2
+    type: u16
+    name: fill_source
+    description: Fill source index
+  - offset: 8
+    size: 2
+    type: u16
+    name: key_source
+    description: Key source index
+  - offset: 10
+    size: 1
+    type: bool
+    name: mask_enabled
+    description: Mask enabled
+  - offset: 11
+    size: 1
+    type: "?"
+    description: padding
+  - offset: 12
+    size: 2
+    type: i16
+    name: mask_top
+    description: Mask distance on top edge
+  - offset: 14
+    size: 2
+    type: i16
+    name: mask_bottom
+    description: Mask distance on bottom edge
+  - offset: 16
+    size: 2
+    type: i16
+    name: mask_left
+    description: Mask distance on left edge
+  - offset: 18
+    size: 2
+    type: i16
+    name: mask_right
+    description: Mask distance on right edge
+
+tests:
+  - name: key1
+    label: Mini extreme keyer 1
+    raw: 0000000101000BC20BC300632328DCD8C1803E80
+    check:
+      index: 0
+      keyer: 0
+      enabled: true
+      fill_source: 3010
+      key_source: 3011
+      fly_enabled: false
+      mask_enabled: false
+      mask_top: 9000
+      mask_bottom: -9000
+      mask_left: -16000
+      mask_right: 16000
