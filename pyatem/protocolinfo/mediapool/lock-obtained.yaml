@@ -1,0 +1,17 @@
+name: lock-obtained
+code: LKOB
+description: |
+  Data from the `LKOB`. This signals that a datastore lock has been successfully obtained for
+  a specific datastore index. Used for data transfers.
+type: field
+fields:
+  - offset: 0
+    size: 2
+    type: u16
+    name: store
+    description: Store id
+    repr: full
+  - offset: 2
+    size: 2
+    type: '?'
+    description: padding

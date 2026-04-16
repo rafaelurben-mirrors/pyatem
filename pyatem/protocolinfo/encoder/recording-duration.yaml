@@ -1,0 +1,37 @@
+name: recording-duration
+code: RTMR
+description: |
+  Data from the `RTMR`. The current recording duration, this does not update very often. The dropped
+  frames field signifies that the disk cannot keep up with writing the data and triggers the warning in the
+  UI.
+type: field
+fields:
+  - offset: 0
+    size: 1
+    type: u8
+    name: hours
+    description: Hours
+  - offset: 1
+    size: 1
+    type: u8
+    name: minutes
+    description: Minutes
+  - offset: 2
+    size: 1
+    type: u8
+    name: seconds
+    description: Seconds
+  - offset: 3
+    size: 1
+    type: u8
+    name: frames
+    description: Frames
+  - offset: 4
+    size: 1
+    type: bool
+    name: has_dropped_frames
+    description: Has dropped frames
+  - offset: 5
+    size: 3
+    type: '?'
+    description: padding

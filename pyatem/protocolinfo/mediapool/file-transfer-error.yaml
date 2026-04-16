@@ -1,0 +1,32 @@
+name: file-transfer-error
+code: FTDE
+description: Data from the `FTDE`. Something went wrong with a file transfer and it has been aborted.
+type: field
+fields:
+  - offset: 0
+    size: 2
+    type: u16
+    name: transfer
+    description: Transfer id
+    repr: full
+  - offset: 2
+    size: 1
+    type: u8
+    name: status
+    description: Error code
+    repr: full
+    enum_const: name
+    enum:
+      1:
+        name: TRYAGAIN
+        description: try-again, Try the transfer again
+      2:
+        name: NOTFOUND
+        description: not-found, The requested store/slot index doesn't contain data
+      5:
+        name: NOLOCK
+        description: no-lock, You didn't obtain the lock before doing the transfer
+  - offset: 3
+    size: 1
+    type: '?'
+    description: padding

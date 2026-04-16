@@ -1,0 +1,26 @@
+name: multiviewer-safe-area
+code: SaMw
+description: |
+  Data from the `SaMw`. This describes if a multiview window has the safe area overlay enabled. This is generally
+  only enabled on the preview window.
+type: field
+fields:
+  - offset: 0
+    size: 1
+    type: u8
+    name: index
+    description: Multiviewer index
+  - offset: 1
+    size: 1
+    type: u8
+    name: window
+    description: Window index
+  - offset: 2
+    size: 1
+    type: bool
+    name: enabled
+    description: Safe-area overlay enabled
+  - offset: 3
+    size: 1
+    type: '?'
+    description: padding

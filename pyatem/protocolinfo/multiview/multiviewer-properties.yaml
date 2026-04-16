@@ -1,0 +1,44 @@
+name: multiviewer-properties
+code: MvPr
+description: |
+  Data from the `MvPr`. The layout preset for the multiviewer output.
+
+  The multiviewer is divided in 4 quadrants and the layout bitfield describes which of those quadrants are
+  subdivided again in 4 more viewers. The default layout will have the top 2 quadrants not divided and the bottom
+  quadrants used for small viewers.
+
+type: field
+fields:
+  - offset: 0
+    size: 1
+    type: u8
+    name: index
+    description: Multiviewer index
+  - offset: 1
+    size: 1
+    type: u8
+    name: layout
+    description: Layout bitfield
+    bitfield_raw: true
+    bitfield:
+      0:
+        name: top_left_small
+        description: Top left small
+      1:
+        name: top_right_small
+        description: Top right small
+      2:
+        name: bottom_left_small
+        description: Bottom left small
+      3:
+        name: bottom_right_small
+        description: Bottom right small
+  - offset: 2
+    size: 1
+    type: bool
+    name: flip
+    description: Flip program/preview
+  - offset: 3
+    size: 1
+    type: '?'
+    description: padding

@@ -1,0 +1,19 @@
+name: file-transfer-data-complete
+code: FTDC
+description: Data from the `FTDC`. Sent after pushing a file.
+type: field
+fields:
+  - offset: 0
+    size: 2
+    type: u16
+    name: transfer
+    description: Transfer id
+    repr: full
+  - offset: 2
+    size: 1
+    type: '?'
+    description: unknown, always 1
+  - offset: 3
+    size: 1
+    type: '?'
+    description: unknown, always 2 or 6

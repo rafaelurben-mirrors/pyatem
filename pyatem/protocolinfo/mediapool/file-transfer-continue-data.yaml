@@ -1,0 +1,33 @@
+name: file-transfer-continue-data
+code: FTCD
+description: |
+  Data from the `FTCD`. This is a field telling the client what chunk size to use to continue the upload
+  of data to the hardware.
+type: field
+fields:
+  - offset: 0
+    size: 2
+    type: u16
+    name: store
+    description: Store id
+    repr: full
+  - offset: 2
+    size: 4
+    type: '?'
+    description: padding
+  - offset: 6
+    size: 2
+    type: u16
+    name: size
+    description: Chunk size
+    repr: full
+  - offset: 8
+    size: 2
+    type: u16
+    name: count
+    description: Chunk count
+    repr: full
+  - offset: 10
+    size: 2
+    type: "?"
+    description: padding

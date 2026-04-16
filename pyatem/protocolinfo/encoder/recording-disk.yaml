@@ -1,0 +1,46 @@
+name: recording-disk
+code: RTMD
+description: Data from the `RTMD`. Info about an attached recording disk.
+type: field
+fields:
+  - offset: 0
+    size: 4
+    type: u32
+    name: index
+    description: Disk index
+  - offset: 4
+    size: 4
+    type: u32
+    name: time_available
+    description: Recording time available in seconds
+  - offset: 8
+    size: 2
+    type: u16
+    name: status
+    description: Status bitfield
+    bitfield_raw: true
+    bitfield:
+      0:
+        name: is_idle
+        description: Idle
+      1:
+        name: is_attached
+        description: Unformatted
+      2:
+        name: is_ready
+        description: Ready
+      3:
+        name: is_recording
+        description: Recording
+      5:
+        name: is_deleted
+        description: Deleted
+  - offset: 10
+    size: 64
+    type: string
+    name: volumename
+    description: Volume name
+  - offset: 74
+    size: 2
+    type: '?'
+    description: padding

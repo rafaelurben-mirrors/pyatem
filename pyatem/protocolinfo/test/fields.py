@@ -797,7 +797,7 @@ class MediaplayerFileInfoField(FieldBase):
         self.is_used = field[2]
         self.hash = field[3]
         self.name_len = field[4]
-        self.name = raw[self.STRUCT.size + self.name_len]
+        self.name = raw[self.STRUCT.size:(self.STRUCT.size + self.name_len)]
 
     @classmethod
     def create(cls, type: int, index: int, is_used: bool, hash: bytes, name_len: int) -> Self:
@@ -2104,6 +2104,241 @@ class KeyPropertiesDveField(FieldBase):
         return f"<key-properties-dve>"
 
 
+class RecordingDiskField(FieldBase):
+    """
+    Data from the `RTMS`. The status for the stream recorder and total space left in the target device.
+
+    ====== ==== ====== ===========
+    Offset Size Type   Description
+    ====== ==== ====== ===========
+    0      2    u16    Recording status bitfield
+    2      2    ?      padding
+    4      4    i32    Total recording time available
+    ====== ==== ====== ===========
+
+    After parsing:
+
+    :ivar status: Recording status bitfield
+    :ivar time_available: Total recording time available
+    """
+
+    CODE = "RTMS"
+    STRUCT = struct.Struct('>H2x i')
+
+    def __init__(self, raw: bytes):
+        """
+        :param raw: Bytes containing the field contents
+        """
+        self.raw = raw
+        field = self.STRUCT.unpack(raw)
+        self.status = field[0]
+        self.is_recording = field[0] & (1 << 0) != 0
+        self.disk_full = field[0] & (1 << 2) != 0
+        self.disk_error = field[0] & (1 << 3) != 0
+        self.disk_unformatted = field[0] & (1 << 4) != 0
+        self.has_dropped = field[0] & (1 << 5) != 0
+        self.is_stopping = field[0] & (1 << 7) != 0
+        self.time_available = field[1]
+
+    @classmethod
+    def create(cls, status: int, time_available: int) -> Self:
+        """
+        :param status: Recording status bitfield
+        :param time_available: Total recording time available
+        :return: Instance of RecordingDiskField with the data applied
+        """
+        raw = cls.STRUCT.pack(status, time_available)
+        return cls(raw)
+
+    def uncreate(self) -> tuple:
+        """Create arguments to feed into RecordingDiskField.create()"""
+        return self.status, self.time_available
+
+    def __repr__(self):
+        return f"<recording-disk time_available={self.time_available}>"
+
+
+class RecordingSettingsField(FieldBase):
+    """
+    Data from the `RMSu`. The settings for the stream recorder.
+
+    The recorder settings has 2 slots to select attached USB disks. If no disk is selected the i32 will be -1 otherwise it
+    will be the disk number referring a RTMD field
+
+    ====== ==== ====== ===========
+    Offset Size Type   Description
+    ====== ==== ====== ===========
+    0      128  string Recording filename
+    128    1    i32    Disk slot 1 index, or -1 for no disk
+    129    1    i32    Disk slot 2 index, or -1 for no disk
+    130    1    bool   Trigger recording in cameras
+    131    3    ?      padding
+    ====== ==== ====== ===========
+
+    After parsing:
+
+    :ivar filename: Recording filename
+    :ivar disk1: Disk slot 1 index, or -1 for no disk
+    :ivar disk2: Disk slot 2 index, or -1 for no disk
+    :ivar record_in_cameras: Trigger recording in cameras
+    """
+
+    CODE = "RMSu"
+    STRUCT = struct.Struct('>128s ii?3x')
+
+    def __init__(self, raw: bytes):
+        """
+        :param raw: Bytes containing the field contents
+        """
+        self.raw = raw
+        field = self.STRUCT.unpack(raw)
+        self.filename = self._get_string(field[0])
+        self.disk1 = field[1]
+        self.disk2 = field[2]
+        self.record_in_cameras = field[3]
+
+    @classmethod
+    def create(cls, filename: str, disk1: int, disk2: int, record_in_cameras: bool) -> Self:
+        """
+        :param filename: Recording filename
+        :param disk1: Disk slot 1 index, or -1 for no disk
+        :param disk2: Disk slot 2 index, or -1 for no disk
+        :param record_in_cameras: Trigger recording in cameras
+        :return: Instance of RecordingSettingsField with the data applied
+        """
+        raw = cls.STRUCT.pack(filename, disk1, disk2, record_in_cameras)
+        return cls(raw)
+
+    def uncreate(self) -> tuple:
+        """Create arguments to feed into RecordingSettingsField.create()"""
+        return self.filename, self.disk1, self.disk2, self.record_in_cameras
+
+    def __repr__(self):
+        return f"<recording-settings filename={self.filename} disk1={self.disk1} disk2={self.disk2} record_in_cameras={self.record_in_cameras}>"
+
+
+class RecordingDiskField(FieldBase):
+    """
+    Data from the `RTMD`. Info about an attached recording disk.
+
+    ====== ==== ====== ===========
+    Offset Size Type   Description
+    ====== ==== ====== ===========
+    0      4    u32    Disk index
+    4      4    u32    Recording time available in seconds
+    8      2    u16    Status bitfield
+    10     64   string Volume name
+    74     2    ?      padding
+    ====== ==== ====== ===========
+
+    After parsing:
+
+    :ivar index: Disk index
+    :ivar time_available: Recording time available in seconds
+    :ivar status: Status bitfield
+    :ivar volumename: Volume name
+    """
+
+    CODE = "RTMD"
+    STRUCT = struct.Struct('>I I H64s2x')
+
+    def __init__(self, raw: bytes):
+        """
+        :param raw: Bytes containing the field contents
+        """
+        self.raw = raw
+        field = self.STRUCT.unpack(raw)
+        self.index = field[0]
+        self.time_available = field[1]
+        self.status = field[2]
+        self.is_idle = field[2] & (1 << 0) != 0
+        self.is_attached = field[2] & (1 << 1) != 0
+        self.is_ready = field[2] & (1 << 2) != 0
+        self.is_recording = field[2] & (1 << 3) != 0
+        self.is_deleted = field[2] & (1 << 5) != 0
+        self.volumename = self._get_string(field[3])
+
+    @classmethod
+    def create(cls, index: int, time_available: int, status: int, volumename: str) -> Self:
+        """
+        :param index: Disk index
+        :param time_available: Recording time available in seconds
+        :param status: Status bitfield
+        :param volumename: Volume name
+        :return: Instance of RecordingDiskField with the data applied
+        """
+        raw = cls.STRUCT.pack(index, time_available, status, volumename)
+        return cls(raw)
+
+    def uncreate(self) -> tuple:
+        """Create arguments to feed into RecordingDiskField.create()"""
+        return self.index, self.time_available, self.status, self.volumename
+
+    def __repr__(self):
+        return f"<recording-disk>"
+
+
+class RecordingDurationField(FieldBase):
+    """
+    Data from the `RTMR`. The current recording duration, this does not update very often. The dropped frames field
+    signifies that the disk cannot keep up with writing the data and triggers the warning in the UI.
+
+    ====== ==== ====== ===========
+    Offset Size Type   Description
+    ====== ==== ====== ===========
+    0      1    u8     Hours
+    1      1    u8     Minutes
+    2      1    u8     Seconds
+    3      1    u8     Frames
+    4      1    bool   Has dropped frames
+    5      3    ?      padding
+    ====== ==== ====== ===========
+
+    After parsing:
+
+    :ivar hours: Hours
+    :ivar minutes: Minutes
+    :ivar seconds: Seconds
+    :ivar frames: Frames
+    :ivar has_dropped_frames: Has dropped frames
+    """
+
+    CODE = "RTMR"
+    STRUCT = struct.Struct('>BBBB ?3x')
+
+    def __init__(self, raw: bytes):
+        """
+        :param raw: Bytes containing the field contents
+        """
+        self.raw = raw
+        field = self.STRUCT.unpack(raw)
+        self.hours = field[0]
+        self.minutes = field[1]
+        self.seconds = field[2]
+        self.frames = field[3]
+        self.has_dropped_frames = field[4]
+
+    @classmethod
+    def create(cls, hours: int, minutes: int, seconds: int, frames: int, has_dropped_frames: bool) -> Self:
+        """
+        :param hours: Hours
+        :param minutes: Minutes
+        :param seconds: Seconds
+        :param frames: Frames
+        :param has_dropped_frames: Has dropped frames
+        :return: Instance of RecordingDurationField with the data applied
+        """
+        raw = cls.STRUCT.pack(hours, minutes, seconds, frames, has_dropped_frames)
+        return cls(raw)
+
+    def uncreate(self) -> tuple:
+        """Create arguments to feed into RecordingDurationField.create()"""
+        return self.hours, self.minutes, self.seconds, self.frames, self.has_dropped_frames
+
+    def __repr__(self):
+        return f"<recording-duration>"
+
+
 class DkeyStateField(FieldBase):
     """
     Data from the `DskS`. Shows the runtime state of the keyer.
@@ -2364,6 +2599,249 @@ class DkeyPropertiesField(FieldBase):
 
     def __repr__(self):
         return f"<dkey-properties index={self.index} tie={self.tie} rate={self.rate} masked={self.masked}>"
+
+
+class MultiviewerPropertiesField(FieldBase):
+    """
+    Data from the `MvPr`. The layout preset for the multiviewer output.
+
+    The multiviewer is divided in 4 quadrants and the layout bitfield describes which of those quadrants are subdivided
+    again in 4 more viewers. The default layout will have the top 2 quadrants not divided and the bottom quadrants used for
+    small viewers.
+
+    ====== ==== ====== ===========
+    Offset Size Type   Description
+    ====== ==== ====== ===========
+    0      1    u8     Multiviewer index
+    1      1    u8     Layout bitfield
+    2      1    bool   Flip program/preview
+    3      1    ?      padding
+    ====== ==== ====== ===========
+
+    After parsing:
+
+    :ivar index: Multiviewer index
+    :ivar layout: Layout bitfield
+    :ivar flip: Flip program/preview
+    """
+
+    CODE = "MvPr"
+    STRUCT = struct.Struct('>BB?x')
+
+    def __init__(self, raw: bytes):
+        """
+        :param raw: Bytes containing the field contents
+        """
+        self.raw = raw
+        field = self.STRUCT.unpack(raw)
+        self.index = field[0]
+        self.layout = field[1]
+        self.top_left_small = field[1] & (1 << 0) != 0
+        self.top_right_small = field[1] & (1 << 1) != 0
+        self.bottom_left_small = field[1] & (1 << 2) != 0
+        self.bottom_right_small = field[1] & (1 << 3) != 0
+        self.flip = field[2]
+
+    @classmethod
+    def create(cls, index: int, layout: int, flip: bool) -> Self:
+        """
+        :param index: Multiviewer index
+        :param layout: Layout bitfield
+        :param flip: Flip program/preview
+        :return: Instance of MultiviewerPropertiesField with the data applied
+        """
+        raw = cls.STRUCT.pack(index, layout, flip)
+        return cls(raw)
+
+    def uncreate(self) -> tuple:
+        """Create arguments to feed into MultiviewerPropertiesField.create()"""
+        return self.index, self.layout, self.flip
+
+    def __repr__(self):
+        return f"<multiviewer-properties>"
+
+
+class MultiviewerVuField(FieldBase):
+    """
+    Data from the `VuMC`. This describes if a multiview window has the VU meter overlay enabled.
+
+    ====== ==== ====== ===========
+    Offset Size Type   Description
+    ====== ==== ====== ===========
+    0      1    u8     Multiviewer index
+    1      1    u8     Window index
+    2      1    bool   VU overlay enabled
+    3      1    ?      padding
+    ====== ==== ====== ===========
+
+    After parsing:
+
+    :ivar index: Multiviewer index
+    :ivar window: Window index
+    :ivar enabled: VU overlay enabled
+    """
+
+    CODE = "VuMC"
+    STRUCT = struct.Struct('>BB?x')
+
+    def __init__(self, raw: bytes):
+        """
+        :param raw: Bytes containing the field contents
+        """
+        self.raw = raw
+        field = self.STRUCT.unpack(raw)
+        self.index = field[0]
+        self.window = field[1]
+        self.enabled = field[2]
+
+    @classmethod
+    def create(cls, index: int, window: int, enabled: bool) -> Self:
+        """
+        :param index: Multiviewer index
+        :param window: Window index
+        :param enabled: VU overlay enabled
+        :return: Instance of MultiviewerVuField with the data applied
+        """
+        raw = cls.STRUCT.pack(index, window, enabled)
+        return cls(raw)
+
+    def uncreate(self) -> tuple:
+        """Create arguments to feed into MultiviewerVuField.create()"""
+        return self.index, self.window, self.enabled
+
+    def __repr__(self):
+        return f"<multiviewer-vu>"
+
+
+class MultiviewerInputField(FieldBase):
+    """
+    Data from the `MvIn`. The input routing for the multiviewer.
+
+    Window numbering differs between switcher families. For example, on Atem Mini Extreme, windows are numbered on a row-by-
+    row basis, starting at upper left. If a quadrant is not split, it gets the number of its upper left mini-window. This is
+    an example of a layout on Atem Mini Extreme:
+
+    +----+----+---------+  |  0 |  1 |    2    |  |  4 |  5 |         |  +----+----+----+----+  |    8    | 10 | 11 |  |
+    | 14 | 15 |  +---------+----+----+
+
+    On the non-Extreme Mini switchers, the window layout does not appear to be configurable, and therefore the numbers are
+    allocated on a contiguous basis:
+
+    +----+----+---------+  |  0      |    1    |  +----+----+----+----+  |  2 |  3 |  4 |  5 |  +----+----+----+----+  |  6
+    | 7? | 8? | 9? |  +----+----+----+----+
+
+    Since the windows marked '?' are not configurable on non-Extreme Minis, these numbers are just an educated guess.
+
+    Audio VU meters appear to be supported on small and big windows alike, but only on those which show a video input or the
+    Program output. The safe area overlay appears to only work on full-sized Preview.
+
+    ====== ==== ====== ===========
+    Offset Size Type   Description
+    ====== ==== ====== ===========
+    0      1    u8     Multiviewer index
+    1      1    u8     Window index
+    2      2    u16    Source index
+    4      1    bool   Supports enabling the VU meter
+    5      1    bool   Supports enabling the safe area overlay
+    6      2    ?      padding
+    ====== ==== ====== ===========
+
+    After parsing:
+
+    :ivar index: Multiviewer index
+    :ivar window: Window index
+    :ivar source: Source index
+    :ivar vu: Supports enabling the VU meter
+    :ivar safearea: Supports enabling the safe area overlay
+    """
+
+    CODE = "MvIn"
+    STRUCT = struct.Struct('>BBH ??2x')
+
+    def __init__(self, raw: bytes):
+        """
+        :param raw: Bytes containing the field contents
+        """
+        self.raw = raw
+        field = self.STRUCT.unpack(raw)
+        self.index = field[0]
+        self.window = field[1]
+        self.source = field[2]
+        self.vu = field[3]
+        self.safearea = field[4]
+
+    @classmethod
+    def create(cls, index: int, window: int, source: int, vu: bool, safearea: bool) -> Self:
+        """
+        :param index: Multiviewer index
+        :param window: Window index
+        :param source: Source index
+        :param vu: Supports enabling the VU meter
+        :param safearea: Supports enabling the safe area overlay
+        :return: Instance of MultiviewerInputField with the data applied
+        """
+        raw = cls.STRUCT.pack(index, window, source, vu, safearea)
+        return cls(raw)
+
+    def uncreate(self) -> tuple:
+        """Create arguments to feed into MultiviewerInputField.create()"""
+        return self.index, self.window, self.source, self.vu, self.safearea
+
+    def __repr__(self):
+        return f"<multiviewer-input>"
+
+
+class MultiviewerSafeAreaField(FieldBase):
+    """
+    Data from the `SaMw`. This describes if a multiview window has the safe area overlay enabled. This is generally only
+    enabled on the preview window.
+
+    ====== ==== ====== ===========
+    Offset Size Type   Description
+    ====== ==== ====== ===========
+    0      1    u8     Multiviewer index
+    1      1    u8     Window index
+    2      1    bool   Safe-area overlay enabled
+    3      1    ?      padding
+    ====== ==== ====== ===========
+
+    After parsing:
+
+    :ivar index: Multiviewer index
+    :ivar window: Window index
+    :ivar enabled: Safe-area overlay enabled
+    """
+
+    CODE = "SaMw"
+    STRUCT = struct.Struct('>BB?x')
+
+    def __init__(self, raw: bytes):
+        """
+        :param raw: Bytes containing the field contents
+        """
+        self.raw = raw
+        field = self.STRUCT.unpack(raw)
+        self.index = field[0]
+        self.window = field[1]
+        self.enabled = field[2]
+
+    @classmethod
+    def create(cls, index: int, window: int, enabled: bool) -> Self:
+        """
+        :param index: Multiviewer index
+        :param window: Window index
+        :param enabled: Safe-area overlay enabled
+        :return: Instance of MultiviewerSafeAreaField with the data applied
+        """
+        raw = cls.STRUCT.pack(index, window, enabled)
+        return cls(raw)
+
+    def uncreate(self) -> tuple:
+        """Create arguments to feed into MultiviewerSafeAreaField.create()"""
+        return self.index, self.window, self.enabled
+
+    def __repr__(self):
+        return f"<multiviewer-safe-area>"
 
 
 class FairlightSoloField(FieldBase):
@@ -3717,5 +4195,307 @@ class MediaplayerSelectedField(FieldBase):
 
     def __repr__(self):
         return f"<mediaplayer-selected index={self.index} source_type={self.source_type} slot={self.slot}>"
+
+
+class FileTransferContinueDataField(FieldBase):
+    """
+    Data from the `FTCD`. This is a field telling the client what chunk size to use to continue the upload of data to the
+    hardware.
+
+    ====== ==== ====== ===========
+    Offset Size Type   Description
+    ====== ==== ====== ===========
+    0      2    u16    Store id
+    2      4    ?      padding
+    6      2    u16    Chunk size
+    8      2    u16    Chunk count
+    10     2    ?      padding
+    ====== ==== ====== ===========
+
+    After parsing:
+
+    :ivar store: Store id
+    :ivar size: Chunk size
+    :ivar count: Chunk count
+    """
+
+    CODE = "FTCD"
+    STRUCT = struct.Struct('>H4xH H2x')
+
+    def __init__(self, raw: bytes):
+        """
+        :param raw: Bytes containing the field contents
+        """
+        self.raw = raw
+        field = self.STRUCT.unpack(raw)
+        self.store = field[0]
+        self.size = field[1]
+        self.count = field[2]
+
+    @classmethod
+    def create(cls, store: int, size: int, count: int) -> Self:
+        """
+        :param store: Store id
+        :param size: Chunk size
+        :param count: Chunk count
+        :return: Instance of FileTransferContinueDataField with the data applied
+        """
+        raw = cls.STRUCT.pack(store, size, count)
+        return cls(raw)
+
+    def uncreate(self) -> tuple:
+        """Create arguments to feed into FileTransferContinueDataField.create()"""
+        return self.store, self.size, self.count
+
+    def __repr__(self):
+        return f"<file-transfer-continue-data store={self.store} size={self.size} count={self.count}>"
+
+
+class FileTransferDataField(FieldBase):
+    """
+    Data from the `FTDa`. This is an incoming chunk of data for a running file transfer.
+
+    ====== ==== ====== ===========
+    Offset Size Type   Description
+    ====== ==== ====== ===========
+    0      2    u16    Transfer id
+    2      2    u16    Data length
+    ====== ==== ====== ===========
+
+    After parsing:
+
+    :ivar transfer: Transfer id
+    :ivar size: Data length
+    """
+
+    CODE = "FTDa"
+    STRUCT = struct.Struct('>HH')
+
+    def __init__(self, raw: bytes):
+        """
+        :param raw: Bytes containing the field contents
+        """
+        self.raw = raw
+        field = self.STRUCT.unpack(raw)
+        self.transfer = field[0]
+        self.size = field[1]
+        self.data = raw[self.STRUCT.size:(self.STRUCT.size + self.size)]
+
+    @classmethod
+    def create(cls, transfer: int, size: int) -> Self:
+        """
+        :param transfer: Transfer id
+        :param size: Data length
+        :return: Instance of FileTransferDataField with the data applied
+        """
+        raw = cls.STRUCT.pack(transfer, size)
+        return cls(raw)
+
+    def uncreate(self) -> tuple:
+        """Create arguments to feed into FileTransferDataField.create()"""
+        return self.transfer, self.size
+
+    def __repr__(self):
+        return f"<file-transfer-data transfer={self.transfer} size={self.size}>"
+
+
+class LockObtainedField(FieldBase):
+    """
+    Data from the `LKOB`. This signals that a datastore lock has been successfully obtained for a specific datastore index.
+    Used for data transfers.
+
+    ====== ==== ====== ===========
+    Offset Size Type   Description
+    ====== ==== ====== ===========
+    0      2    u16    Store id
+    2      2    ?      padding
+    ====== ==== ====== ===========
+
+    After parsing:
+
+    :ivar store: Store id
+    """
+
+    CODE = "LKOB"
+    STRUCT = struct.Struct('>H2x')
+
+    def __init__(self, raw: bytes):
+        """
+        :param raw: Bytes containing the field contents
+        """
+        self.raw = raw
+        field = self.STRUCT.unpack(raw)
+        self.store = field[0]
+
+    @classmethod
+    def create(cls, store: int) -> Self:
+        """
+        :param store: Store id
+        :return: Instance of LockObtainedField with the data applied
+        """
+        raw = cls.STRUCT.pack(store)
+        return cls(raw)
+
+    def uncreate(self) -> tuple:
+        """Create arguments to feed into LockObtainedField.create()"""
+        return self.store,
+
+    def __repr__(self):
+        return f"<lock-obtained store={self.store}>"
+
+
+class LockStateField(FieldBase):
+    """
+    Data from the `LKOB`. This updates the state of the locks.
+
+    ====== ==== ====== ===========
+    Offset Size Type   Description
+    ====== ==== ====== ===========
+    0      2    u16    Store id
+    2      1    bool   Store is locked
+    3      1    ?      padding
+    ====== ==== ====== ===========
+
+    After parsing:
+
+    :ivar store: Store id
+    :ivar state: Store is locked
+    """
+
+    CODE = "LKST"
+    STRUCT = struct.Struct('>H?x')
+
+    def __init__(self, raw: bytes):
+        """
+        :param raw: Bytes containing the field contents
+        """
+        self.raw = raw
+        field = self.STRUCT.unpack(raw)
+        self.store = field[0]
+        self.state = field[1]
+
+    @classmethod
+    def create(cls, store: int, state: bool) -> Self:
+        """
+        :param store: Store id
+        :param state: Store is locked
+        :return: Instance of LockStateField with the data applied
+        """
+        raw = cls.STRUCT.pack(store, state)
+        return cls(raw)
+
+    def uncreate(self) -> tuple:
+        """Create arguments to feed into LockStateField.create()"""
+        return self.store, self.state
+
+    def __repr__(self):
+        return f"<lock-state store={self.store} state={self.state}>"
+
+
+class FileTransferDataCompleteField(FieldBase):
+    """
+    Data from the `FTDC`. Sent after pushing a file.
+
+    ====== ==== ====== ===========
+    Offset Size Type   Description
+    ====== ==== ====== ===========
+    0      2    u16    Transfer id
+    2      1    ?      unknown, always 1
+    3      1    ?      unknown, always 2 or 6
+    ====== ==== ====== ===========
+
+    After parsing:
+
+    :ivar transfer: Transfer id
+    """
+
+    CODE = "FTDC"
+    STRUCT = struct.Struct('>Hxx')
+
+    def __init__(self, raw: bytes):
+        """
+        :param raw: Bytes containing the field contents
+        """
+        self.raw = raw
+        field = self.STRUCT.unpack(raw)
+        self.transfer = field[0]
+
+    @classmethod
+    def create(cls, transfer: int) -> Self:
+        """
+        :param transfer: Transfer id
+        :return: Instance of FileTransferDataCompleteField with the data applied
+        """
+        raw = cls.STRUCT.pack(transfer)
+        return cls(raw)
+
+    def uncreate(self) -> tuple:
+        """Create arguments to feed into FileTransferDataCompleteField.create()"""
+        return self.transfer,
+
+    def __repr__(self):
+        return f"<file-transfer-data-complete transfer={self.transfer}>"
+
+
+class FileTransferErrorField(FieldBase):
+    """
+    Data from the `FTDE`. Something went wrong with a file transfer and it has been aborted.
+
+    ====== ==== ====== ===========
+    Offset Size Type   Description
+    ====== ==== ====== ===========
+    0      2    u16    Transfer id
+    2      1    u8     Error code
+    3      1    ?      padding
+    ====== ==== ====== ===========
+
+    The `Error code` is an enum of these values:
+
+    === ==========
+    Key Error code
+    === ==========
+    1   try-again, Try the transfer again
+    2   not-found, The requested store/slot index doesn't contain data
+    5   no-lock, You didn't obtain the lock before doing the transfer
+    === ==========
+
+    After parsing:
+
+    :ivar transfer: Transfer id
+    :ivar status: Error code
+    """
+
+    CODE = "FTDE"
+    STRUCT = struct.Struct('>HBx')
+
+    STATUS_TRYAGAIN = 1
+    STATUS_NOTFOUND = 2
+    STATUS_NOLOCK = 5
+
+    def __init__(self, raw: bytes):
+        """
+        :param raw: Bytes containing the field contents
+        """
+        self.raw = raw
+        field = self.STRUCT.unpack(raw)
+        self.transfer = field[0]
+        self.status = field[1]
+
+    @classmethod
+    def create(cls, transfer: int, status: int) -> Self:
+        """
+        :param transfer: Transfer id
+        :param status: Error code
+        :return: Instance of FileTransferErrorField with the data applied
+        """
+        raw = cls.STRUCT.pack(transfer, status)
+        return cls(raw)
+
+    def uncreate(self) -> tuple:
+        """Create arguments to feed into FileTransferErrorField.create()"""
+        return self.transfer, self.status
+
+    def __repr__(self):
+        return f"<file-transfer-error transfer={self.transfer} status={self.status}>"
 
 

@@ -1,0 +1,21 @@
+name: lock-state
+code: LKST
+description: Data from the `LKOB`. This updates the state of the locks.
+type: field
+fields:
+  - offset: 0
+    size: 2
+    type: u16
+    name: store
+    description: Store id
+    repr: full
+  - offset: 2
+    size: 1
+    type: bool
+    name: state
+    description: Store is locked
+    repr: full
+  - offset: 3
+    size: 1
+    type: '?'
+    description: padding

@@ -1,0 +1,40 @@
+name: recording-disk
+code: RTMS
+description: Data from the `RTMS`. The status for the stream recorder and total space left in the target device.
+type: field
+fields:
+  - offset: 0
+    size: 2
+    type: u16
+    name: status
+    description: Recording status bitfield
+    bitfield_raw: true
+    bitfield:
+      0:
+        name: is_recording
+        description: Recording
+      2:
+        name: disk_full
+        description: Disk full
+      3:
+        name: disk_error
+        description: Disk error
+      4:
+        name: disk_unformatted
+        description: Disk unformatted
+      5:
+        name: has_dropped
+        description: Frames dropped
+      7:
+        name: is_stopping
+        description: Stopping
+  - offset: 2
+    size: 2
+    type: "?"
+    description: padding
+  - offset: 4
+    size: 4
+    type: i32
+    name: time_available
+    description: Total recording time available
+    repr: full

@@ -169,7 +169,7 @@ def generate_init(raw):
             elif rs['store'] == 'dict':
                 result += INDENT + f'self.{rs["name"]} = ' + '{}\n'
             elif rs['store'] == 'string':
-                result += INDENT + f'self.{rs["name"]} = raw[self.STRUCT.size + self.{field["name"]}]\n'
+                result += INDENT + f'self.{rs["name"]} = raw[self.STRUCT.size:(self.STRUCT.size + self.{field["name"]})]\n'
                 continue
             result += INDENT + f'for i in range(self.{field["name"]}):\n'
             result += INDENT * 2 + 'rf = self.REPEATED.unpack_from(raw, self.STRUCT.size + (i * self.REPEATED.size))\n'

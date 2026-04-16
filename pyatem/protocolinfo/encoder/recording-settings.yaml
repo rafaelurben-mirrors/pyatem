@@ -1,0 +1,37 @@
+name: recording-settings
+code: RMSu
+description: |
+  Data from the `RMSu`. The settings for the stream recorder.
+  
+  The recorder settings has 2 slots to select attached USB disks. If no disk is selected the i32 will be -1 otherwise
+  it will be the disk number referring a RTMD field
+type: field
+fields:
+  - offset: 0
+    size: 128
+    type: string
+    name: filename
+    description: Recording filename
+    repr: full
+  - offset: 128
+    size: 1
+    type: i32
+    name: disk1
+    description: Disk slot 1 index, or -1 for no disk
+    repr: full
+  - offset: 129
+    size: 1
+    type: i32
+    name: disk2
+    description: Disk slot 2 index, or -1 for no disk
+    repr: full
+  - offset: 130
+    size: 1
+    type: bool
+    name: record_in_cameras
+    description: Trigger recording in cameras
+    repr: full
+  - offset: 131
+    size: 3
+    type: '?'
+    description: padding

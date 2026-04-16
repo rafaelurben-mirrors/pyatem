@@ -1,0 +1,20 @@
+name: file-transfer-data
+code: FTDa
+description: Data from the `FTDa`. This is an incoming chunk of data for a running file transfer.
+type: field
+fields:
+  - offset: 0
+    size: 2
+    type: u16
+    name: transfer
+    description: Transfer id
+    repr: full
+  - offset: 2
+    size: 2
+    type: u16
+    name: size
+    description: Data length
+    repr: full
+    repeat:
+      name: data
+      store: string
