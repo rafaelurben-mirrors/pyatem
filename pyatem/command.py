@@ -2488,6 +2488,41 @@ class StreamingAudioBitrateCommand(Command):
         return self._make_command('STAB', data)
 
 
+class UsbAudioFunctionCommand(Command):
+    """
+    Implementation of the `UAFn` command. This selects how the ATEM exposes
+    audio over USB. ATEM Software Control shows this as Settings -> Audio ->
+    USB Connection.
+
+    This has been tested on an ATEM Mini Extreme ISO G2. Known values are
+    1 for Webcam and 2 for USB Digital Audio. The switcher echoes live updates
+    with the trailing unknown value set to 1, but accepts commands with the
+    trailing value set to 0.
+
+    ====== ==== ====== ===========
+    Offset Size Type   Description
+    ====== ==== ====== ===========
+    0      2    u16    USB audio function
+    2      2    ?      unknown
+    ====== ==== ====== ===========
+    """
+
+    WEBCAM = 1
+    DIGITAL_AUDIO = 2
+
+    def __init__(self, function, u1=0):
+        """
+        :param function: USB audio function, 1 for Webcam or 2 for USB Digital Audio
+        :param u1: Unknown trailing value, defaults to the value accepted by tested hardware
+        """
+        self.function = function
+        self.u1 = u1
+
+    def get_command(self):
+        data = struct.pack('>HH', self.function, self.u1)
+        return self._make_command('UAFn', data)
+
+
 class StreamingStatusSetCommand(Command):
     """
     Implementation of the `StrR` command. This starts and stops the live

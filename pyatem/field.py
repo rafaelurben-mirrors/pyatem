@@ -3422,6 +3422,43 @@ class StreamingAudioBitrateField(FieldBase):
         return '<streaming-audio-bitrate min={} max={}>'.format(self.min, self.max)
 
 
+class UsbAudioFunctionField(FieldBase):
+    """
+    Data from the `UAFn`. This selects how the ATEM exposes audio over USB.
+
+    This has been observed on an ATEM Mini Extreme ISO G2. ATEM Software Control
+    shows this as Settings -> Audio -> USB Connection. Initial state has been
+    observed with the unknown value set to 0, while live updates after changing
+    the setting have been observed with the unknown value set to 1.
+
+    ====== ==== ====== ============
+    Offset Size Type   Descriptions
+    ====== ==== ====== ============
+    0      2    u16    USB audio function
+    2      2    ?      unknown
+    ====== ==== ====== ============
+
+    ====== =================
+    Value  USB audio function
+    ====== =================
+    1      Webcam
+    2      USB Digital Audio
+    ====== =================
+    """
+
+    CODE = "UAFn"
+
+    WEBCAM = 1
+    DIGITAL_AUDIO = 2
+
+    def __init__(self, raw):
+        self.raw = raw
+        self.function, self.u1 = struct.unpack('>HH', raw)
+
+    def __repr__(self):
+        return '<usb-audio-function function={} u1={}>'.format(self.function, self.u1)
+
+
 class StreamingServiceField(FieldBase):
     """
     Data from the `SRSU`. This the settings for the live stream output, it also sets the video bitrate for

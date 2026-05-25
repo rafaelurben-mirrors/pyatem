@@ -98,6 +98,7 @@ class AtemProtocol:
         'RMSu': 'recording-settings',
         'SRSU': 'streaming-service',
         'STAB': 'streaming-audio-bitrate',
+        'UAFn': 'usb-audio-function',
         'StRS': 'streaming-status',
         'SRST': 'streaming-time',
         'SRSS': 'streaming-stats',

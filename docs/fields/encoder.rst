@@ -15,6 +15,9 @@ Base encoder settings
 .. autoclass:: pyatem.field.StreamingAudioBitrateField
    :members:
 
+.. autoclass:: pyatem.field.UsbAudioFunctionField
+   :members:
+
 Live streaming
 --------------
 

@@ -4,6 +4,13 @@ Video encoder commands
 These are the commands related to the built in video encoder in the ATEM Mini series
 of video switchers. This controls both the live stream and stream recorder component.
 
+Base encoder settings
+---------------------
+
+.. autoclass:: pyatem.command.UsbAudioFunctionCommand
+   :members:
+   :special-members:
+
 
 Live streaming
 --------------
