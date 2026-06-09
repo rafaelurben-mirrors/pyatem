@@ -5,8 +5,8 @@ import json
 import gi
 
 from pyatem.command import MultiviewInputCommand, VideoModeCommand, AutoInputVideoModeCommand, SaveStartupStateCommand, \
-    ClearStartupStateCommand
-from pyatem.field import InputPropertiesField
+    ClearStartupStateCommand, UsbAudioFunctionCommand
+from pyatem.field import InputPropertiesField, UsbAudioFunctionField
 
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GLib, GObject, Gio, Gdk
@@ -63,6 +63,9 @@ class PreferencesWindow:
         self.multiview_swap = builder.get_object("multiview_swap")
         self.multiview_layout = builder.get_object("multiview_layout")
 
+        self.audio_usb_uvc = builder.get_object("usb_route_uvc")
+        self.audio_usb_audio = builder.get_object("usb_route_audio")
+
         self.videohubs = builder.get_object("videohubs")
 
         self.apply_css(self.window, self.provider)
@@ -75,6 +78,7 @@ class PreferencesWindow:
         self.connection.mixer.on('change:multiviewer-properties:*', self.make_multiviewer)
         self.connection.mixer.on('change:multiviewer-input:*', self.update_multiviewer_input)
         self.connection.mixer.on('change:video-mode', self.update_mode_models)
+        self.connection.mixer.on('change:usb-audio-function', self.update_audio_function)
         self.window.show_all()
 
     def load_config(self):
@@ -144,6 +148,23 @@ class PreferencesWindow:
         self.model_changing = False
 
         self.update_mode_models(None, update_active=True)
+
+    def update_audio_function(self, arg):
+        self.model_changing = True
+        if arg.function == UsbAudioFunctionField.WEBCAM:
+            self.audio_usb_uvc.set_active(True)
+        elif arg.function == UsbAudioFunctionField.DIGITAL_AUDIO:
+            self.audio_usb_audio.set_active(True)
+        self.model_changing = False
+
+    def on_usb_route_uvc_group_changed(self, widget, *args):
+        if self.model_changing:
+            return
+        if self.audio_usb_uvc.get_active():
+            cmd = UsbAudioFunctionCommand(UsbAudioFunctionCommand.WEBCAM, 0)
+        else:
+            cmd = UsbAudioFunctionCommand(UsbAudioFunctionCommand.DIGITAL_AUDIO, 0)
+        self.connection.mixer.send_commands([cmd])
 
     def update_mode_models(self, arg, update_active=False):
         current_mode = self.connection.mixer.mixerstate['video-mode']
@@ -217,6 +238,9 @@ class PreferencesWindow:
 
         if 'multiviewer-properties' in state and 'multiviewer-input' in state:
             self.make_multiviewer()
+
+        if 'usb-audio-function' in state:
+            self.update_audio_function(state['usb-audio-function'])
 
     def update_multiviewer_input(self, input):
         state = self.connection.mixer.mixerstate
