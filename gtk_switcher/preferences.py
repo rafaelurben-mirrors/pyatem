@@ -63,6 +63,7 @@ class PreferencesWindow:
         self.multiview_swap = builder.get_object("multiview_swap")
         self.multiview_layout = builder.get_object("multiview_layout")
 
+        self.box_usb_audio = builder.get_object("box_usb_audio")
         self.audio_usb_uvc = builder.get_object("usb_route_uvc")
         self.audio_usb_audio = builder.get_object("usb_route_audio")
 
@@ -240,6 +241,7 @@ class PreferencesWindow:
             self.make_multiviewer()
 
         if 'usb-audio-function' in state:
+            self.box_usb_audio.show()
             self.update_audio_function(state['usb-audio-function'])
 
     def update_multiviewer_input(self, input):
