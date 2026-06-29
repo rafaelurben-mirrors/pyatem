@@ -58,6 +58,7 @@ switcher_sources = [
     'debugger.py',
     'presetwindow.py',
     'routing.py',
+    'settings.py',
     'palettepanel.py',
     'panel_mediaplayer.py',
     'panel_downstreamkeyer.py',

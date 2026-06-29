@@ -62,7 +62,7 @@
               <object class="HdyViewSwitcher">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <property name="stack">mainstack</property>
+                <property name="stack">settingsstack</property>
               </object>
             </child>
             <child>
@@ -85,20 +85,7 @@
                 <property name="can-focus">False</property>
                 <property name="orientation">vertical</property>
                 <child>
-                  <object class="GtkStackSwitcher">
-                    <property name="visible">True</property>
-                    <property name="can-focus">False</property>
-                    <property name="margin-start">8</property>
-                    <property name="margin-end">8</property>
-                    <property name="margin-top">8</property>
-                    <property name="margin-bottom">8</property>
-                    <property name="stack">settingsstack</property>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">True</property>
-                    <property name="position">0</property>
-                  </packing>
+                  <placeholder/>
                 </child>
                 <child>
                   <object class="GtkScrolledWindow">

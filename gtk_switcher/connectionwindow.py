@@ -54,13 +54,10 @@ class Handler:
         self.password = builder.get_object('password')
         self.device = builder.get_object('device')
         self.avahi_list = builder.get_object('avahi_list')
-        self.preferences_button = builder.get_object('preferences')
 
         self.connection_udp = builder.get_object('connection_udp')
         self.connection_usb = builder.get_object('connection_usb')
         self.connection_tcp = builder.get_object('connection_tcp')
-
-        self.preferences_button.set_sensitive(self.connection.connected)
 
         self.settings = Gio.Settings.new('nl.brixit.Switcher')
         self.settings.connect('changed::switcher-ip', self.on_switcher_ip_changed)
@@ -75,7 +72,7 @@ class Handler:
         # Drop placeholder since it messes with libhandy css
         self.avahi_list.set_placeholder(None)
 
-        label = Gtk.Label(address[0])
+        label = Gtk.Label(str(address[0]))
         label.address = address
         label.proto = proto
         ar = Handy.ActionRow()
@@ -120,6 +117,10 @@ class Handler:
             url += '/' + self.device.get_text()
             self.log.info("New connection url: " + str(url))
             self.settings.set_string('switcher-ip', url)
+
+
+        action = self.application.lookup_action("reconnect")
+        action.activate()
         self.window.close()
 
     def fix_widget_state(self):
@@ -172,6 +173,3 @@ class Handler:
                 self.connection_udp.set_active(True)
                 self.ipaddress.set_text(value)
             self.fix_widget_state()
-
-    def on_preferences_clicked(self, *args):
-        PreferencesWindow(self.parent, self.application, self.connection)

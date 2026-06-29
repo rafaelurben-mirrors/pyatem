@@ -16,5 +16,14 @@
             <summary>Connection data</summary>
             <description>Connection specific stored config</description>
         </key>
+        <key type="s" name="launchmode">
+            <default>'Reconnect to last'</default>
+            <choices>
+                <choice value='Reconnect to last'/>
+                <choice value='List connections'/>
+            </choices>
+            <summary>Reconnect to last or ask on launch</summary>
+            <description>Reconnect to last or ask on launch</description>
+        </key>
     </schema>
 </schemalist>

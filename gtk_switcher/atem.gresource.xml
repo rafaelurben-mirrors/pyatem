@@ -8,6 +8,7 @@
     <file>ui/mixeffect-aux.glade</file>
     <file>ui/upstream-keyer.glade</file>
     <file>ui/preferences.glade</file>
+    <file>ui/settings.glade</file>
     <file>ui/macro-editor.glade</file>
     <file>ui/eq.glade</file>
     <file>ui/videohub.glade</file>

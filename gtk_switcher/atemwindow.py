@@ -1,6 +1,7 @@
 # Copyright 2021 - 2022, Martijn Braam and the OpenAtem contributors
 # SPDX-License-Identifier: GPL-3.0-only
 import ctypes
+import gettext
 import glob
 import json
 import logging
@@ -14,7 +15,9 @@ from datetime import datetime
 import gi
 
 from gtk_switcher.debugger import DebuggerWindow
+from gtk_switcher.preferences import PreferencesWindow
 from gtk_switcher.routing import Routing
+from gtk_switcher.settings import SettingsWindow
 from gtk_switcher.videohubconnection import VideoHubConnection
 from pyatem.hexdump import hexdump
 
@@ -185,6 +188,12 @@ class AtemWindow(SwitcherPage, MediaPage, AudioPage, CameraPage):
         self.disable_shortcuts = False
         self.macro_edit = False
 
+        self.menu_status = builder.get_object('menu_status')
+        self.menu_connect = builder.get_object('menu_connect')
+        self.menu_hwprefs = builder.get_object('menu_hwprefs')
+
+        self.topleft_button = builder.get_object('topleft_button')
+
         self.timecode_mode = 0
         self.timecode_offset = 0
 
@@ -215,8 +224,15 @@ class AtemWindow(SwitcherPage, MediaPage, AudioPage, CameraPage):
                 ConnectionWindow(self.window, self.connection, self.application)
 
             self.connection.ip = self.settings.get_string('switcher-ip')
-        self.connection.daemon = True
-        self.connection.start()
+
+        lm = self.settings.get_string('launchmode')
+        self.connection_launched = False
+        if lm != 'Reconnect to last':
+            ConnectionWindow(self.window, self.connection, self.application)
+        else:
+            self.connection_launched = True
+            self.connection.daemon = True
+            self.connection.start()
 
         accel = Gtk.AccelGroup()
         accel.connect(Gdk.keyval_from_name('space'), 0, 0, self.on_cut_shortcut)
@@ -238,7 +254,36 @@ class AtemWindow(SwitcherPage, MediaPage, AudioPage, CameraPage):
 
         GLib.timeout_add_seconds(1, self.on_clock)
 
+        self.add_app_action('quit', self.on_quit)
+        self.add_app_action('connect', self.on_connect_activate)
+        self.add_app_action('hwprefs', self.on_hwprefs)
+        self.add_app_action('settings', self.on_settings)
+        self.add_app_action('reconnect', self.on_reconnect)
+
         Gtk.main()
+
+    def on_quit(self, action, user_data):
+        Gtk.main_quit()
+
+    def on_reconnect(self, action, user_data):
+        if not self.connection_launched:
+            self.connection_launched = True
+            self.connection.daemon = True
+            self.connection.start()
+
+    def on_connect_activate(self, action, user_data):
+        ConnectionWindow(self.window, self.connection, self.application)
+
+    def on_hwprefs(self, action, user_data):
+        PreferencesWindow(self.window, self.application, self.connection)
+
+    def on_settings(self, action, user_data):
+        SettingsWindow(self.window, self.application)
+
+    def add_app_action(self, name, callback):
+        action = Gio.SimpleAction.new(name, None)
+        action.connect('activate', callback)
+        self.application.add_action(action)
 
     def on_preview_keyboard_change(self, widget, window, key, modifier):
         if self.disable_shortcuts:
@@ -328,14 +373,20 @@ class AtemWindow(SwitcherPage, MediaPage, AudioPage, CameraPage):
     def on_main_window_destroy(self, widget):
         Gtk.main_quit()
 
-    def on_preferences_button_clicked(self, widget):
-        ConnectionWindow(self.window, self.connection, self.application)
-
     def on_disconnect(self, reason):
         self.connectionstack.set_visible_child_name(reason)
         for tid in self.hardware_threads:
             self.hardware_threads[tid].die()
         self.log_aw.warning("Disconnected from mixer")
+
+        self.menu_status.set_text(gettext.pgettext("", "Not connected"))
+        self.menu_hwprefs.hide()
+        self.menu_connect.set_property('text', gettext.pgettext("", "Connect"))
+
+        self.topleft_button.set_label(gettext.pgettext("", "Connect"))
+        self.topleft_button.set_property('action-name', 'app.connect')
+
+
 
     def on_connect(self):
         self.inpr_latch = 0
@@ -349,6 +400,16 @@ class AtemWindow(SwitcherPage, MediaPage, AudioPage, CameraPage):
             self.connection_settings = {
                 "videohubs": []
             }
+
+        if self.connection.ip is not None and self.connection.ip != "0.0.0.0":
+            self.menu_status.set_text(self.connection.ip)
+        else:
+            self.menu_status.set_text(gettext.pgettext("", "Connected over USB"))
+
+        self.menu_hwprefs.show()
+        self.menu_connect.set_property('text', gettext.pgettext("", "Connections..."))
+        self.topleft_button.set_label(gettext.pgettext("", "Preferences"))
+        self.topleft_button.set_property('action-name', 'app.hwprefs')
 
         # Connect to stored videohubs
         if 'videohubs' in self.connection_settings:
